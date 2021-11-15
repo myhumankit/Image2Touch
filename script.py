@@ -13,7 +13,6 @@ def convertSVGtoPNG(svg_file, png_file, desiredResolution=(600,600)):
     drawing.scale(scaleX, scaleY)
     drawing.width *= scaleX
     drawing.height *= scaleY
-
     im =renderPM.drawToFile(drawing, png_file, fmt="PNG")
     return im
 
@@ -70,7 +69,16 @@ smootherModifier = grid.modifiers.new(name="PostProcessSmoother", type='SMOOTH')
 smootherModifier.factor = smoothingFactor;
 smootherModifier.iterations = smoothingNbRepeats;
 
-#Exporting the mesh in stl format
+# Creating the triangulating modifier
+triangulateModifier = grid.modifiers.new(name="Triangulator", type='TRIANGULATE')
+
+# Creating the decimating modifier
+decimateModifier = grid.modifiers.new(name="Decimator", type='DECIMATE')
+decimateModifier.ratio = 0.1; # Divide the number of faces by 10.
+#decimateModifier.decimate_type = "DISSOLVE"
+#decimateModifier.iterations = smoothingNbRepeats;
+
+# #Exporting the mesh in stl format
 bpy.ops.object.select_all(action='DESELECT')
 bpy.ops.export_mesh.stl(filepath=outputMesh)
 
