@@ -8,3 +8,7 @@
 ## How to run the script
 1. Open a terminal
 2. Use the command line *blender -P [script_name] --background*
+
+## How to run the GUI
+1. Create a python virtual environment with `conda env create -f env_mhk.yml`
+2. Inside this new environment, launch `python main.py`
