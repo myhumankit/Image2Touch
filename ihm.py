@@ -1,6 +1,6 @@
 import wx
 from color_detection import findColors
-from svg_generation import ColorType, ColorDefinition, generateSVG
+from stl_generation import ColorType, ColorDefinition, generateSTL
 
 class MainWindow(wx.Frame):
     """The main window of the application"""
@@ -161,8 +161,8 @@ class MainWindow(wx.Frame):
         """Behaviour of the 'generate' button"""
         try:
             colors = [ColorDefinition(color, self.getColorType(color), self.getParameter(color)) for color in self.colors]
-            generateSVG(self.imagePath, colors)
-            wx.MessageBox('SVG generation successful !', 'Info', wx.OK)
+            generateSTL(self.imagePath, colors)
+            wx.MessageBox('STL generation successful !', 'Info', wx.OK)
         # TODO Better exception handling with specific exceptions
         except Exception: 
-            wx.MessageBox('SVG generation unsuccessful !', 'Error', wx.OK | wx.ICON_ERROR)
+            wx.MessageBox('STL generation unsuccessful !', 'Error', wx.OK | wx.ICON_ERROR)
