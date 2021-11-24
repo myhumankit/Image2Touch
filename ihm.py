@@ -1,6 +1,7 @@
 import wx
 from color_detection import findColors
 from svg_generation import ColorType, ColorDefinition, generateSVG
+import os
 
 class MainWindow(wx.Frame):
     """The main window of the application"""
@@ -77,7 +78,7 @@ class MainWindow(wx.Frame):
     def onImageLoad(self):
         """Behaviour for loading an image to be processed"""
         # Update the text containing the path
-        self.imagePathText.SetLabel(self.imagePath)
+        self.imagePathText.SetLabel(os.path.basename(self.imagePath))
         # scale the image, preserving the aspect ratio
         img = wx.Image(self.imagePath, wx.BITMAP_TYPE_ANY)
         W = img.GetWidth()
