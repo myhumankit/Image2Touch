@@ -1,5 +1,5 @@
 import wx
-from color_detection import findColors
+from color_detection import findColorsAndMakeNewImage
 from svg_generation import ColorType, ColorDefinition, generateSVG
 import os
 
@@ -74,13 +74,10 @@ class MainWindow(wx.Frame):
             except IOError:
                 wx.LogError(f"Cannot open file '{pathname}'.")
         
-                
-    def onImageLoad(self):
-        """Behaviour for loading an image to be processed"""
-        # Update the text containing the path
-        self.imagePathText.SetLabel(os.path.basename(self.imagePath))
+    
+    def setImage(self, imageCtrl, imagePath):
         # scale the image, preserving the aspect ratio
-        img = wx.Image(self.imagePath, wx.BITMAP_TYPE_ANY)
+        img = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
         W = img.GetWidth()
         H = img.GetHeight()
         if W > H:
@@ -91,12 +88,24 @@ class MainWindow(wx.Frame):
             NewW = self.PhotoMaxSize * W / H
         img = img.Scale(NewW,NewH)
         # Update the image preview
-        self.imageCtrl.SetBitmap(wx.BitmapFromImage(img))
+        imageCtrl.SetBitmap(wx.BitmapFromImage(img))
+    
+    def onImageLoad(self):
+        """Behaviour for loading an image to be processed"""
+        # Update the text containing the path
+        self.imagePathText.SetLabel(os.path.basename(self.imagePath))
+        # Original image preview
+        #self.setImage(self.imageCtrl, self.imagePath)
+        
+        # Find the colors in the image
+        self.colors, self.flatImagePath = findColorsAndMakeNewImage(self.imagePath)
+        # Flattened image preview
+        self.setImage(self.imageCtrl, self.flatImagePath)
+        
         # MAJ UI
         self.refresh()
         
-        # Find the colors in the image
-        self.colors = findColors(self.imagePath)
+        # Triggers the appearance of the color UI
         self.onColorsChanged()
         
     
