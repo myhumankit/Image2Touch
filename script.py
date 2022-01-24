@@ -1,84 +1,116 @@
+from typing import List, Tuple
+import os
 import bpy
+import bmesh 
 from bpy import context
+from numpy import double
 from mathutils import Vector
+	   
 
-from reportlab.graphics import renderPM, renderPDF
-from svglib.svglib import svg2rlg
+class MeshMandatoryParameters:
+	"""Represents the different mandatory parameters to generate a mesh"""
+	def __init__(self, outputMeshPath:str, imageResolution: Tuple[int, int, int], numberOfPointsPerPixel: int = 2, desiredSize: Tuple[double, double, double] = (100., 100., 10.), desiredThickness: double = 0.05) -> None:
+		"""Constructor of the MeshMandatoryParameters.
 
- # Convert an svg image into a PNG image
-def convertSVGtoPNG(svg_file, png_file, desiredResolution=(600,600)):
-    drawing = svg2rlg(svg_file)
-    scaleX = desiredResolution[0] / drawing.width;
-    scaleY = desiredResolution[1] / drawing.height;
-    drawing.scale(scaleX, scaleY)
-    drawing.width *= scaleX
-    drawing.height *= scaleY
-    im =renderPM.drawToFile(drawing, png_file, fmt="PNG")
-    return im
+		Args:
+			outputMeshPath(str): The path towards the output mesh
+			imageResolution(int, int, int): The resoluion of the depth map
+			numberOfPointsPerPixel (int): The number of mesh points that are mapped to one pixel of the source image
+			desiredSize (tuple(double, double, double)): The desired dimensions (x, y, zmax), expressed in mm
+			desiredThickness(double): The desired thickness of the plane, in mm
+		"""
+		self.outputMeshPath = outputMeshPath
+		self.imageResolution = imageResolution
+		self.numberOfPointsPerPixel = numberOfPointsPerPixel
+		self.desiredSize = desiredSize
+		self.desiredThickness = desiredThickness
+		
 
+def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters):
+	"""
+	Generate the mesh under the stl format.
 
-# Makes an empty scene
-bpy.ops.wm.read_homefile(use_empty=True)
+	Args:
+		imagePath(str): The path towards the depth map image
+		meshMandatoryParameters(MeshMandatoryParameters): The mandatory parameters to generate the mesh
+	"""
+	## Makes an empty scene
+	bpy.ops.wm.read_homefile(use_empty=True)
+   
+	displaceEccentricity = 16; #Maximum excentricity of the texture : higher values reduces blur / at oblique angles but is slower
+	smoothingNbRepeats = 10; # Number of times the smooth modifier is applied
+	smoothingFactor = 0.75; # Lambda factor of the smooth modifier
+	outputMesh = ""
+	if (os.path.isdir(meshMandatoryParameters.outputMeshPath)):
+		# Create a name for the output mesh
+		outputMesh = os.path.join(meshMandatoryParameters.outputMeshPath, "result.stl")
+	else:
+		outputMesh = os.path.splitext(meshMandatoryParameters.outputMeshPath)[0] + "-resultingMesh.stl"
 
+	## Creation of the object
+	bpy.ops.mesh.primitive_cube_add(size=1)
+	support = bpy.data.objects['Cube']
+	support.name = 'Support'
+			
+	nbIter = 0
+	meshReso = meshMandatoryParameters.desiredSize[0] * meshMandatoryParameters.desiredSize[1] * meshMandatoryParameters.numberOfPointsPerPixel
+	while len(support.data.vertices) < meshReso and nbIter <100:
+		nbIter = nbIter + 1
+		me = support.data
+		# object mode bmesh
+		bm = bmesh.new()
+		bm.from_mesh(me)
+		faces = [f for f in bm.faces if f.calc_center_median()[2] >= 0.5]
+		edges = set(e for f in faces for e in f.edges)
 
-# Parameters that will come from a file for instance
-imageSVGInPath = "D:/projets/data/MHK/testBlenderPNGtoOBJ/exemple-01-light.svg"
-imagePNGPath = "D:/projets/data/MHK/testBlenderPNGtoOBJ/exemple-01.png"
-desiredResolution = (500, 500); # Desired resolution of the svg transformed into png
-numberOfPointsPerPixel = 2; #Number of mesh points per pixel
-desiredSize = (100,100,10.); # Desired dimensions (x, y, zmax), in mm
-desiredThickness = 0.05; # Desired thickness of the plane, in mm
-displaceEccentricity = 16; #Maximum excentricity of the texture : higher values reduces blur / at oblique angles but is slower
-smoothingNbRepeats = 10; # Number of times the smooth modifier is applied
-smoothingFactor = 0.75; # Lambda factor of the smooth modifier
-outputMesh = "D:/projets/data/MHK/testBlenderPNGtoOBJ/result_NbPoint=" + str(numberOfPointsPerPixel) + "_SmoothFactor=" + str(smoothingFactor).replace(".","_") + "SmoothRepeats=" + str(smoothingNbRepeats) + "_displaceEccentricity=" + str(displaceEccentricity) + ".stl";
+		bmesh.ops.subdivide_edges(bm,
+			edges=list(edges),
+			cuts=1,
+			use_grid_fill=True,
+			)
+		bm.to_mesh(me) 
+		me.update()
+	
+	# ## Creating the vertex groups
+	upperface_vertex_group = support.vertex_groups.new(name='UpperFaceGroup')
+	upperface_group_data = [v.index for v in support.data.vertices if v.co[2] >=0.5]
+	upperface_vertex_group.add(upperface_group_data, 1.0, 'ADD')
 
-# Convertion of the SVG file into PNG file
-im = convertSVGtoPNG(imageSVGInPath, imagePNGPath, desiredResolution)
+	innerupperface_vertex_group = support.vertex_groups.new(name='InnerUpperFaceGroup')
+	innerupperface_group_data = [v.index for v in support.data.vertices if (v.co[2] >=0.5 and abs(v.co[0]) < 0.5 and abs(v.co[1]) <0.5)]
+	innerupperface_vertex_group.add(innerupperface_group_data, 1.0, 'ADD')
+	
+	# ## Scaling the object
+	support.scale = Vector((meshMandatoryParameters.desiredSize[0]/2., meshMandatoryParameters.desiredSize[1]/2.,meshMandatoryParameters.desiredSize[2]))
 
-#Creation of the object
-bpy.ops.mesh.primitive_grid_add(x_subdivisions=desiredResolution[0]*numberOfPointsPerPixel-1, y_subdivisions=desiredResolution[1]*numberOfPointsPerPixel-1, scale=(desiredSize[0],desiredSize[1],1));
-grid = bpy.data.objects['Grid']
-grid.name = 'Support Grid'
+	# ## Creating the displace modifier
+	tex = bpy.data.textures.new("SourceImage", type = 'IMAGE')
+	tex.image = bpy.data.images.load(imagePath)
+	tex.filter_eccentricity = displaceEccentricity
+	tex.extension = "EXTEND"; # To avoid the repetition of the texture, creating unwanted borders
 
-# Scaling the object
-grid.scale = Vector((desiredSize[0]/2., desiredSize[1]/2.,desiredSize[2]))
+	modifier = support.modifiers.new(name="Displace", type='DISPLACE')
+	modifier.texture = bpy.data.textures['SourceImage']
+	modifier.vertex_group = 'UpperFaceGroup'
+	modifier.direction = "Z"
+	modifier.strength = 1.
 
-#Creating the displace modifier
-tex = bpy.data.textures.new("SourceImage", type = 'IMAGE')
-tex.image = bpy.data.images.load(imagePNGPath)
-tex.filter_eccentricity = displaceEccentricity;
-tex.extension = "EXTEND"; # To avoid the repetition of the texture, creating unwanted borders
+	# ## Creating the smoother modifier
+	smootherModifier = support.modifiers.new(name="Smoother", type='SMOOTH')
+	smootherModifier.factor = smoothingFactor
+	smootherModifier.iterations = smoothingNbRepeats
+	smootherModifier.vertex_group = 'InnerUpperFaceGroup'
 
-modifier = grid.modifiers.new(name="Displace", type='DISPLACE')
-modifier.texture = bpy.data.textures['SourceImage']
-modifier.strength = 1.;
+	# ## Creating the decimating modifier
+	decimateModifier = support.modifiers.new(name="Decimator", type='DECIMATE')
+	decimateModifier.ratio = 0.1; # Divide the number of faces by 10.
+	# #decimateModifier.decimate_type = "DISSOLVE"
+	# #decimateModifier.iterations = smoothingNbRepeats;
 
-# Creating the smoother modifier
-smootherModifier = grid.modifiers.new(name="Smoother", type='SMOOTH')
-smootherModifier.factor = smoothingFactor;
-smootherModifier.iterations = smoothingNbRepeats;
+	# ## Exporting the mesh in stl format
+	# bpy.ops.object.select_all(action='DESELECT')
+	# bpy.ops.export_mesh.stl(filepath=outputMesh)
+	pass
 
-# Creating the solidify modifier
-solidifyModifier = grid.modifiers.new(name="Solidify", type='SOLIDIFY')
-solidifyModifier.offset = 0.;
-solidifyModifier.thickness = desiredThickness;
-
-# Creating the smoother modifier
-smootherModifier = grid.modifiers.new(name="PostProcessSmoother", type='SMOOTH')
-smootherModifier.factor = smoothingFactor;
-smootherModifier.iterations = smoothingNbRepeats;
-
-# Creating the triangulating modifier
-triangulateModifier = grid.modifiers.new(name="Triangulator", type='TRIANGULATE')
-
-# Creating the decimating modifier
-decimateModifier = grid.modifiers.new(name="Decimator", type='DECIMATE')
-decimateModifier.ratio = 0.1; # Divide the number of faces by 10.
-#decimateModifier.decimate_type = "DISSOLVE"
-#decimateModifier.iterations = smoothingNbRepeats;
-
-# #Exporting the mesh in stl format
-bpy.ops.object.select_all(action='DESELECT')
-bpy.ops.export_mesh.stl(filepath=outputMesh)
-
+params = MeshMandatoryParameters(outputMeshPath = "D:/projets/data/MHK/testBlenderPNGtoOBJ/exemple-01-light-gray.png", imageResolution = (500,500,3))
+generateSTL(imagePath="D:/projets/data/MHK/testBlenderPNGtoOBJ/exemple-01-light-gray.png", meshMandatoryParameters = params)
