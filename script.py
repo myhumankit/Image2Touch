@@ -22,7 +22,7 @@ bpy.ops.wm.read_homefile(use_empty=True)
 
 
 # Parameters that will come from a file for instance
-imageSVGInPath = "D:/projets/data/MHK/testBlenderPNGtoOBJ/exemple-01.svg"
+imageSVGInPath = "D:/projets/data/MHK/testBlenderPNGtoOBJ/exemple-01-light.svg"
 imagePNGPath = "D:/projets/data/MHK/testBlenderPNGtoOBJ/exemple-01.png"
 desiredResolution = (500, 500); # Desired resolution of the svg transformed into png
 numberOfPointsPerPixel = 2; #Number of mesh points per pixel

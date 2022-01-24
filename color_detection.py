@@ -12,7 +12,8 @@ def findColorsAndMakeNewImage(imagePath):
         imagePath (string): The path to the image to analyze
 
     Returns:
-        (list(string), imgae): the hex representations of the colors, and the path to the flat image
+        (list(string), string, list(int), dict(int, int)): the hex representations of the colors, the path to the flat image, the list of labels
+        to which belongs each pixel and the dictionnary that relates a label to the list of hex representations of the colors
     """
     
     # Parameters that could become arguments
@@ -64,7 +65,10 @@ def findColorsAndMakeNewImage(imagePath):
     
     # Translates to HEX
     color_hexes = ['#%02x%02x%02x' % (r, g, b) for [r,g,b] in relevant_colors]
-
+    ids = []
+    for i in range(len(color_hexes)):
+        ids.append(i)
+    relevant_label_to_idx_color_hexes = {l:idx for l,idx in zip(relevant_labels, ids)}
     
     ## Part 2 : making the new image    
 
@@ -118,5 +122,5 @@ def findColorsAndMakeNewImage(imagePath):
     img_2_bgr = cv2.cvtColor(img_2, cv2.COLOR_RGB2BGR)
     cv2.imwrite(image_path, img_2_bgr)
     
-    return color_hexes, image_path
+    return color_hexes, image_path, pixel_list_labels, relevant_label_to_idx_color_hexes
     

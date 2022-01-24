@@ -1,6 +1,8 @@
 import wx
 from color_detection import findColorsAndMakeNewImage
-from stl_generation import ColorType, ColorDefinition, generateSTL
+from generate_greyscale_image import generateGreyScaleImage
+from color_types import ColorType, ColorDefinition
+from stl_generation import MeshMandatoryParameters, generateSTL
 import os
 
 class MainWindow(wx.Frame):
@@ -11,6 +13,8 @@ class MainWindow(wx.Frame):
         self.colors = []
         self.colorTypeCB = {}
         self.colorParamSelect = {}
+        self.pixel_list_labels = []
+        self.relevant_label_to_color_hexes = {}
 
         self.initUI()
         self.Centre()
@@ -98,7 +102,7 @@ class MainWindow(wx.Frame):
         #self.setImage(self.imageCtrl, self.imagePath)
         
         # Find the colors in the image
-        self.colors, self.flatImagePath = findColorsAndMakeNewImage(self.imagePath)
+        self.colors, self.flatImagePath, self.pixel_list_labels, self.relevant_label_to_color_hexes = findColorsAndMakeNewImage(self.imagePath)
         # Flattened image preview
         self.setImage(self.imageCtrl, self.flatImagePath)
         
@@ -171,7 +175,9 @@ class MainWindow(wx.Frame):
         """Behaviour of the 'generate' button"""
         try:
             colors = [ColorDefinition(color, self.getColorType(color), self.getParameter(color)) for color in self.colors]
-            generateSTL(self.imagePath, colors)
+            grayscaleImagePath, grayscaleImageReso = generateGreyScaleImage(self.imagePath, colors, self.pixel_list_labels, self.relevant_label_to_color_hexes)
+            meshMandatoryParams = MeshMandatoryParameters(self.imagePath, grayscaleImageReso)
+            generateSTL(grayscaleImagePath, meshMandatoryParams)
             wx.MessageBox('STL generation successful !', 'Info', wx.OK)
         # TODO Better exception handling with specific exceptions
         except Exception: 
