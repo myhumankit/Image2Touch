@@ -12,4 +12,5 @@ dependencies:
     - opencv-python==4.5.4.60
     - bpy==2.82.1
     - wxpython==4.1.1
+    - pypubsub==4.0.3
 

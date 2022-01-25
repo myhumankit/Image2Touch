@@ -5,7 +5,7 @@ from scipy.cluster.hierarchy import ward, fcluster
 from scipy.spatial.distance import pdist, euclidean
 from tempfile import mkstemp
 
-def findColorsAndMakeNewImage(imagePath):
+def findColorsAndMakeNewImage(imagePath, fnUpdateProgress):
     """Finds the different colors used in the image and makes a new one using only flat coloring
 
     Args:
@@ -24,6 +24,9 @@ def findColorsAndMakeNewImage(imagePath):
     
     ## Part 1 : finding the different colors
     
+    # Start the progress bar
+    fnUpdateProgress(0, "Listing the different colors")
+    
     # Reads the image and converts to RGB
     img = cv2.cvtColor(cv2.imread(imagePath), cv2.COLOR_BGR2RGB)
     # Flattened list of the pixel values
@@ -37,11 +40,14 @@ def findColorsAndMakeNewImage(imagePath):
     for x, c in zip(color_list, cl_count):
         for i in range(max(1, math.floor(100*c/(img.shape[0]*img.shape[1])))):
             color_list_duplicates = np.append(color_list_duplicates, [x], axis=0)
-            
+                
     # Ward clustering
     y = pdist(color_list_duplicates)
     Z = ward(y)
     labels = fcluster(Z, carre_distance_min, criterion='distance')
+    
+    # We get to this point pretty fast
+    fnUpdateProgress(5)
     
     # processes color means for each class
     unique_labels = np.unique(labels)
@@ -58,6 +64,9 @@ def findColorsAndMakeNewImage(imagePath):
     any(temp_fn(c) for c in pixel_list)
     means = [[int(round(x/c)) for x in s] for s,c in zip(sums, counts)]
     
+    # The means is the most intensive step of this first part
+    fnUpdateProgress(45)
+    
     # Filters classes that appear in at least 0.3% of the image
     relevant_labels = [l for l,c in zip(unique_labels, counts) if c > img.shape[0] * img.shape[1] * prct]
     relevant_colors = [[math.floor(r),math.floor(g),math.floor(b)] for l, [r,g,b] in zip(unique_labels, means) if l in relevant_labels]
@@ -70,7 +79,9 @@ def findColorsAndMakeNewImage(imagePath):
         ids.append(i)
     relevant_label_to_idx_color_hexes = {l:idx for l,idx in zip(relevant_labels, ids)}
     
-    ## Part 2 : making the new image    
+    ## Part 2 : making the new image
+    
+    fnUpdateProgress(50, "Generating flat colored image")
 
     # For each unique color in the image, associate a label from relevant_labels, or a default value
     no_label = -42
@@ -87,7 +98,7 @@ def findColorsAndMakeNewImage(imagePath):
     pixel_list_labels = [color_to_relevant_label[(r,g,b)] for [r,g,b] in pixel_list]
         
     # In the following loop, we will classify the pixels that don't have a label yet
-    firstIter = True
+    nbIter = 0
     pixel_list_2 = pixel_list
     while any(l for l in pixel_list_labels if l == no_label):
         # This first step will make 9 clones of the "image" (with labels instead of pixels), slightly shifted
@@ -100,7 +111,7 @@ def findColorsAndMakeNewImage(imagePath):
         pixel_possible_labels_list = np.reshape(img_labels_shift_stack, [img.shape[0]*img.shape[1], 9])
 
         # The first iteration will invalidate the labels of pixels that seem to be isolated (less than min_same_neighbours neighbours of the same label)
-        if firstIter:
+        if nbIter == 0:
             pixel_list_labels = [(label if (label != no_label and sum(1 for pl in possible_labels if pl == label) >= min_same_neighbours)
                                 else no_label)
                         for label, possible_labels in zip(pixel_list_labels, pixel_possible_labels_list)]
@@ -111,7 +122,9 @@ def findColorsAndMakeNewImage(imagePath):
                         else min([(pl, relevant_label_to_mean[pl]) for pl in possible_labels if pl != no_label], key=lambda labAndMean: euclidean(pixel, labAndMean[1]))[0]))
                         for pixel, label, possible_labels in zip(pixel_list, pixel_list_labels, pixel_possible_labels_list)]
 
-        firstIter = False
+        nbIter += 1
+        # Remaining progress is divided by 2 each iteration
+        fnUpdateProgress(int(100-50/(2**nbIter)))
     
     # Once all pixels have a label, we rebuild the image
     pixel_list_2 = [relevant_label_to_mean[label] for label in pixel_list_labels]
@@ -121,6 +134,9 @@ def findColorsAndMakeNewImage(imagePath):
     _, image_path = mkstemp(suffix=".png")
     img_2_bgr = cv2.cvtColor(img_2, cv2.COLOR_RGB2BGR)
     cv2.imwrite(image_path, img_2_bgr)
+    
+    # We are done
+    fnUpdateProgress(100)
     
     return color_hexes, image_path, pixel_list_labels, relevant_label_to_idx_color_hexes
     

@@ -1,4 +1,6 @@
 import wx
+from pubsub import pub
+import threading
 from color_detection import findColorsAndMakeNewImage
 from generate_greyscale_image import generateGreyScaleImage
 from color_types import ColorType, ColorDefinition
@@ -23,7 +25,7 @@ class MainWindow(wx.Frame):
     def initUI(self):
         """Builds and displays all the UI elements of the window"""
         panel = wx.Panel(self)
-        sizer = wx.GridBagSizer(3, 4)
+        sizer = wx.GridBagSizer(3, 5)
 
         self.panel = panel
         self.sizer = sizer
@@ -31,21 +33,27 @@ class MainWindow(wx.Frame):
         self.imagePathText = wx.StaticText(panel, label="Select a file")
         sizer.Add(self.imagePathText, pos=(0, 0))
         
-        buttonOpen = wx.Button(panel, label="...", size=(90, 28))
-        buttonOpen.Bind(wx.EVT_BUTTON,self.onOpen)
-        sizer.Add(buttonOpen, pos=(0, 1))
+        self.buttonOpen = wx.Button(panel, label="...", size=(90, 28))
+        self.buttonOpen.Bind(wx.EVT_BUTTON,self.onOpen)
+        sizer.Add(self.buttonOpen, pos=(0, 1))
         
         self.colorSizer = wx.FlexGridSizer(cols=4, vgap=2, hgap=5)
         sizer.Add(self.colorSizer, pos=(1, 0), span=(1,2), flag=wx.EXPAND)
         
-        buttonGenerate = wx.Button(panel, label="Generate", size=(90, 28))
-        buttonGenerate.Bind(wx.EVT_BUTTON,self.onGenerate)
-        sizer.Add(buttonGenerate, pos=(2, 0), span=(1,2), flag=wx.EXPAND)
+        self.buttonGenerate = wx.Button(panel, label="Generate", size=(90, 28))
+        self.buttonGenerate.Bind(wx.EVT_BUTTON,self.onGenerate)
+        sizer.Add(self.buttonGenerate, pos=(2, 0), span=(1,2), flag=wx.EXPAND)
+        
+        self.gaugeText = wx.StaticText(panel, label="Idle")
+        sizer.Add(self.gaugeText, pos=(3, 0))
+        
+        self.gauge = wx.Gauge(panel, range=100)
+        sizer.Add(self.gauge, pos=(4,0), span=(1,2), flag=wx.EXPAND)
         
         self.PhotoMaxSize = 100
         self.imageCtrl = wx.StaticBitmap(self.panel, wx.ID_ANY, 
                                          wx.BitmapFromImage(wx.EmptyImage(self.PhotoMaxSize,self.PhotoMaxSize)))
-        sizer.Add(self.imageCtrl, pos=(0, 3), span=(4,1), flag=wx.EXPAND)
+        sizer.Add(self.imageCtrl, pos=(0, 3), span=(5,1), flag=wx.EXPAND)
         
         sizer.AddGrowableRow(1)
         sizer.AddGrowableCol(0)
@@ -53,12 +61,26 @@ class MainWindow(wx.Frame):
         panel.SetSizer(sizer)
         sizer.Fit(self)
         
+        # Respond to the update event
+        pub.subscribe(self.updateProgress, "update")
         
     def refresh(self):
         """Refreshes the layout of the window (this needs to happen if elements change size)"""
         self.panel.Refresh()
         self.sizer.Fit(self)
         
+    @staticmethod
+    def callUpdateProgress(value, message=""):
+        """Updates the status of the progress bar from a thread"""
+        wx.CallAfter(pub.sendMessage, "update", value=value, message=message)
+        
+    def updateProgress(self, value, message=""):
+        """Updates the status of the progress bar"""
+        if value >= 100:
+            message = "Done"
+        if message != "":
+            self.gaugeText.SetLabel(message)
+        self.gauge.SetValue(value)
         
     def onOpen(self, event):
         """Behaviour for the '...' button. An image file can be selected for processing"""
@@ -74,7 +96,9 @@ class MainWindow(wx.Frame):
                 # We try to open the file to check if it is accessible
                 with open(pathname, 'r') as file:
                     self.imagePath = pathname
-                self.onImageLoad()
+                    # The intensive stuff is done in a thread
+                    t=threading.Thread(target=self.onImageLoad)
+                    t.start()
             except IOError:
                 wx.LogError(f"Cannot open file '{pathname}'.")
         
@@ -95,22 +119,22 @@ class MainWindow(wx.Frame):
         imageCtrl.SetBitmap(wx.BitmapFromImage(img))
     
     def onImageLoad(self):
-        """Behaviour for loading an image to be processed"""
+        """Behaviour for loading an image to be processed (executed in a thread)"""
         # Update the text containing the path
-        self.imagePathText.SetLabel(os.path.basename(self.imagePath))
-        # Original image preview
-        #self.setImage(self.imageCtrl, self.imagePath)
+        wx.CallAfter(self.imagePathText.SetLabel, os.path.basename(self.imagePath))
+        # MAJ UI
+        wx.CallAfter(self.refresh)
         
         # Find the colors in the image
-        self.colors, self.flatImagePath, self.pixel_list_labels, self.relevant_label_to_color_hexes = findColorsAndMakeNewImage(self.imagePath)
+        self.colors, self.flatImagePath, self.pixel_list_labels, self.relevant_label_to_color_hexes = findColorsAndMakeNewImage(self.imagePath, MainWindow.callUpdateProgress)
         # Flattened image preview
-        self.setImage(self.imageCtrl, self.flatImagePath)
+        wx.CallAfter(self.setImage, self.imageCtrl, self.flatImagePath)
         
         # MAJ UI
-        self.refresh()
+        wx.CallAfter(self.refresh)
         
         # Triggers the appearance of the color UI
-        self.onColorsChanged()
+        wx.CallAfter(self.onColorsChanged)
         
     
     def makeCB(self, color):
