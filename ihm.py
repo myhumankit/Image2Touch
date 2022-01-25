@@ -213,15 +213,16 @@ class MainWindow(wx.Frame):
         
         
     def onGenerate(self, event):
+        """Behaviour of the 'generate' button"""
         # The intensive stuff is done in a thread
         t=threading.Thread(target=self.generate)
         t.start()
                     
     def generate(self):
+        """Generates the STL file. Runs in a thread."""
         # Prevents the user from interacting with the software
         wx.CallAfter(self.disableButtons)
         
-        """Behaviour of the 'generate' button"""
         try:
             MainWindow.callUpdateProgress(0, "Generating height map")
             colors = [ColorDefinition(color, self.getColorType(color), self.getParameter(color)) for color in self.colors]
