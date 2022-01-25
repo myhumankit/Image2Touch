@@ -64,6 +64,17 @@ class MainWindow(wx.Frame):
         # Respond to the update event
         pub.subscribe(self.updateProgress, "update")
         
+        
+    def disableButtons(self):
+        """Disables all buttons to prevent interaction during other work"""
+        self.buttonOpen.Disable()
+        self.buttonGenerate.Disable()
+        
+    def enableButtons(self):
+        """Disables all buttons to prevent interaction during other work"""
+        self.buttonOpen.Enable()
+        self.buttonGenerate.Enable()
+        
     def refresh(self):
         """Refreshes the layout of the window (this needs to happen if elements change size)"""
         self.panel.Refresh()
@@ -120,6 +131,9 @@ class MainWindow(wx.Frame):
     
     def onImageLoad(self):
         """Behaviour for loading an image to be processed (executed in a thread)"""
+        # Prevents the user from interacting with the software
+        wx.CallAfter(self.disableButtons)
+        
         # Update the text containing the path
         wx.CallAfter(self.imagePathText.SetLabel, os.path.basename(self.imagePath))
         # MAJ UI
@@ -135,6 +149,9 @@ class MainWindow(wx.Frame):
         
         # Triggers the appearance of the color UI
         wx.CallAfter(self.onColorsChanged)
+        
+        # Allow the user further interaction with the software
+        wx.CallAfter(self.enableButtons)
         
     
     def makeCB(self, color):
