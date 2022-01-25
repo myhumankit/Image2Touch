@@ -213,13 +213,28 @@ class MainWindow(wx.Frame):
         
         
     def onGenerate(self, event):
+        # The intensive stuff is done in a thread
+        t=threading.Thread(target=self.generate)
+        t.start()
+                    
+    def generate(self):
+        # Prevents the user from interacting with the software
+        wx.CallAfter(self.disableButtons)
+        
         """Behaviour of the 'generate' button"""
         try:
+            MainWindow.callUpdateProgress(0, "Generating height map")
             colors = [ColorDefinition(color, self.getColorType(color), self.getParameter(color)) for color in self.colors]
             grayscaleImagePath, grayscaleImageReso = generateGreyScaleImage(self.imagePath, colors, self.pixel_list_labels, self.relevant_label_to_color_hexes)
             meshMandatoryParams = MeshMandatoryParameters(self.imagePath, grayscaleImageReso)
+            MainWindow.callUpdateProgress(50, "Generating STL file")
             generateSTL(grayscaleImagePath, meshMandatoryParams)
-            wx.MessageBox('STL generation successful !', 'Info', wx.OK)
+            MainWindow.callUpdateProgress(100)
+            wx.CallAfter(wx.MessageBox, 'STL generation successful !', 'Info', wx.OK)
         # TODO Better exception handling with specific exceptions
-        except Exception: 
-            wx.MessageBox('STL generation unsuccessful !', 'Error', wx.OK | wx.ICON_ERROR)
+        except Exception as ex:
+            MainWindow.callUpdateProgress(0, "Unsuccessful")
+            wx.CallAfter(wx.MessageBox, 'STL generation unsuccessful : '+str(ex), 'Error', wx.OK | wx.ICON_ERROR)
+        finally:
+            # Allow the user further interaction with the software
+            wx.CallAfter(self.enableButtons)
