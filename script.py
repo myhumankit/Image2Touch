@@ -38,8 +38,11 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	bpy.ops.wm.read_homefile(use_empty=True)
    
 	displaceEccentricity = 16; #Maximum excentricity of the texture : higher values reduces blur / at oblique angles but is slower
+	displaceStrength = 1.; #Amount to displace the geometry
 	smoothingNbRepeats = 10; # Number of times the smooth modifier is applied
-	smoothingFactor = 0.75; # Lambda factor of the smooth modifier
+	smoothingFactor = 2.; # Lambda factor of the smooth modifier
+	smoothingBorder = 0. # Lambda factor in border
+	decimateAngleLimit = 0.1 # Maximum angle allowed
 	outputMesh = ""
 	if (os.path.isdir(meshMandatoryParameters.outputMeshPath)):
 		# Create a name for the output mesh
@@ -48,7 +51,7 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 		outputMesh = os.path.splitext(meshMandatoryParameters.outputMeshPath)[0] + "-resultingMesh.stl"
 
 	## Creation of the object
-	bpy.ops.mesh.primitive_cube_add(size=1)
+	bpy.ops.mesh.primitive_cube_add()
 	support = bpy.data.objects['Cube']
 	support.name = 'Support'
 			
@@ -60,7 +63,7 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 		# object mode bmesh
 		bm = bmesh.new()
 		bm.from_mesh(me)
-		faces = [f for f in bm.faces if f.calc_center_median()[2] >= 0.5]
+		faces = [f for f in bm.faces if f.calc_center_median()[2] >= 1.]
 		edges = set(e for f in faces for e in f.edges)
 
 		bmesh.ops.subdivide_edges(bm,
@@ -73,11 +76,11 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	
 	# ## Creating the vertex groups
 	upperface_vertex_group = support.vertex_groups.new(name='UpperFaceGroup')
-	upperface_group_data = [v.index for v in support.data.vertices if v.co[2] >=0.5]
+	upperface_group_data = [v.index for v in support.data.vertices if v.co[2] >=1.]
 	upperface_vertex_group.add(upperface_group_data, 1.0, 'ADD')
 
 	innerupperface_vertex_group = support.vertex_groups.new(name='InnerUpperFaceGroup')
-	innerupperface_group_data = [v.index for v in support.data.vertices if (v.co[2] >=0.5 and abs(v.co[0]) < 0.5 and abs(v.co[1]) <0.5)]
+	innerupperface_group_data = [v.index for v in support.data.vertices if (v.co[2] >=1. and abs(v.co[0]) < 1. and abs(v.co[1]) <1.)]
 	innerupperface_vertex_group.add(innerupperface_group_data, 1.0, 'ADD')
 	
 	# ## Scaling the object
@@ -93,23 +96,31 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	modifier.texture = bpy.data.textures['SourceImage']
 	modifier.vertex_group = 'UpperFaceGroup'
 	modifier.direction = "Z"
-	modifier.strength = 1.
+	modifier.strength = displaceStrength
 
 	# ## Creating the smoother modifier
-	smootherModifier = support.modifiers.new(name="Smoother", type='SMOOTH')
-	smootherModifier.factor = smoothingFactor
+	smootherModifier = support.modifiers.new(name="Smoother", type='LAPLACIANSMOOTH')
+	smootherModifier.use_x = True
+	smootherModifier.use_y = True
+	smootherModifier.use_z = False
+	smootherModifier.lambda_factor = smoothingFactor
+	smootherModifier.lambda_border = smoothingBorder
 	smootherModifier.iterations = smoothingNbRepeats
 	smootherModifier.vertex_group = 'InnerUpperFaceGroup'
+	smootherModifier.use_volume_preserve = True
+	smootherModifier.use_normalized = True
 
 	# ## Creating the decimating modifier
 	decimateModifier = support.modifiers.new(name="Decimator", type='DECIMATE')
-	decimateModifier.ratio = 0.1; # Divide the number of faces by 10.
-	# #decimateModifier.decimate_type = "DISSOLVE"
-	# #decimateModifier.iterations = smoothingNbRepeats;
+	decimateModifier.decimate_type = "DISSOLVE" 
+	decimateModifier.angle_limit = decimateAngleLimit
 
-	# ## Exporting the mesh in stl format
+	# # Create the triangulate modifier
+	triangulateModifier = support.modifiers.new(name="Triangulator", type='TRIANGULATE')
+
+	## Exporting the mesh in stl format
 	# bpy.ops.object.select_all(action='DESELECT')
-	# bpy.ops.export_mesh.stl(filepath=outputMesh)
+	bpy.ops.export_mesh.stl(filepath=outputMesh)
 	pass
 
 params = MeshMandatoryParameters(outputMeshPath = "D:/projets/data/MHK/testBlenderPNGtoOBJ/exemple-01-light-gray.png", imageResolution = (500,500,3))
