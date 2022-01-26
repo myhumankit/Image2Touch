@@ -7,7 +7,7 @@ from mathutils import Vector
        
 class MeshMandatoryParameters:
 	"""Represents the different mandatory parameters to generate a mesh"""
-	def __init__(self, outputMeshPath:str, imageResolution: Tuple[int, int, int], numberOfPointsPerPixel: int = 2, desiredSize: Tuple[double, double, double] = (100., 100., 10.), desiredThickness: double = 0.05) -> None:
+	def __init__(self, outputMeshPath:str, imageResolution: Tuple[int, int, int], numberOfPointsPerPixel: int = 8, desiredSize: Tuple[double, double, double] = (100., 100., 10.), desiredThickness: double = 0.05) -> None:
 		"""Constructor of the MeshMandatoryParameters.
 
 		Args:
@@ -32,13 +32,17 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 		imagePath(str): The path towards the depth map image
 		meshMandatoryParameters(MeshMandatoryParameters): The mandatory parameters to generate the mesh
 	"""
-	## Makes an empty scene
-	# bpy.ops.wm.read_homefile(use_empty=True)
-   
+	# ## Makes an empty scene
+	for object in bpy.data.objects:
+		if not(object.name == "Cube" or object.name == "Support"):
+			bpy.data.objects.remove(object, do_unlink=True)
+	for tex in bpy.data.textures:
+		bpy.data.textures.remove(tex, do_unlink=True)
+	  
 	displaceEccentricity = 16; #Maximum excentricity of the texture : higher values reduces blur / at oblique angles but is slower
 	displaceStrength = 1.; #Amount to displace the geometry
-	smoothingNbRepeats = 10; # Number of times the smooth modifier is applied
-	smoothingFactor = 2.; # Lambda factor of the smooth modifier
+	smoothingNbRepeats = 5.; # Number of times the smooth modifier is applied
+	smoothingFactor = 1.; # Lambda factor of the smooth modifier
 	smoothingBorder = 0. # Lambda factor in border
 	decimateAngleLimit = 0.1 # Maximum angle allowed
 	outputMesh = ""
@@ -48,11 +52,15 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	else:
 		outputMesh = os.path.splitext(meshMandatoryParameters.outputMeshPath)[0] + "-resultingMesh.stl"
 
-	## Creation of the object
-	bpy.ops.mesh.primitive_cube_add()
-	support = bpy.data.objects['Cube']
-	support.name = 'Support'
-			
+	# ## Removing potential old vertex groups / modifiers of the support
+	support = bpy.data.objects[0]
+	for v_group in support.vertex_groups:
+		support.vertex_groups.remove(v_group)
+
+	for modifier in support.modifiers:
+		support.modifiers.remove(modifier)
+	
+	# ## Subdividing the upper face until reaching the desired resolution
 	nbIter = 0
 	meshReso = meshMandatoryParameters.desiredSize[0] * meshMandatoryParameters.desiredSize[1] * meshMandatoryParameters.numberOfPointsPerPixel
 	while len(support.data.vertices) < meshReso and nbIter <100:
@@ -117,6 +125,5 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	triangulateModifier = support.modifiers.new(name="Triangulator", type='TRIANGULATE')
 
 	## Exporting the mesh in stl format
-	# bpy.ops.object.select_all(action='DESELECT')
 	bpy.ops.export_mesh.stl(filepath=outputMesh)
 	pass
