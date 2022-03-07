@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "main.py",
             "console": "integratedTerminal",
-            "python": "${env:LOCALAPPDATA}\\Continuum\\anaconda3\\envs\\mhk\\python.exe"
+            "python.envFile": "${workspaceFolder}/.env"
         }
     ]
 }
