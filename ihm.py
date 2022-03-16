@@ -200,7 +200,7 @@ class MainWindow(wx.Frame):
 
     def makeParameterSelect(self, color):
         """Makes a field for selecting the color processing parameter"""
-        select = wx.SpinCtrl(self.panel, min=0, max=100, initial=0)
+        select = wx.SpinCtrl(self.panel, min=0, max=100, initial=len(self.colorParamSelect))
         self.colorParamSelect[color] = select
         return select
     
