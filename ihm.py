@@ -1,4 +1,5 @@
 import wx
+import wx.lib.agw.floatspin as floatspin
 from pubsub import pub
 import threading
 from color_detection import findColorsAndMakeNewImage
@@ -40,21 +41,27 @@ class MainWindow(wx.Frame):
         self.colorSizer = wx.FlexGridSizer(cols=4, vgap=2, hgap=5)
         sizer.Add(self.colorSizer, pos=(1, 0), span=(1,2), flag=wx.EXPAND)
         
-        self.dimensionSizer = wx.GridBagSizer(3,3)
-        dimensionMainHeader = wx.StaticText(panel, label="Dimensions :")
-        dimensionXHeader = wx.StaticText(panel, label="Length (mm) ")
-        dimensionYHeader = wx.StaticText(panel, label="Width (mm) ")
-        dimensionZHeader = wx.StaticText(panel, label="Height (mm) ")
+        self.dimensionSizer = wx.GridBagSizer(3,4)
+        dimensionMainHeader = wx.StaticText(panel, label="Dimensions (mm) :")
+        dimensionXHeader = wx.StaticText(panel, label="Length ")
+        dimensionYHeader = wx.StaticText(panel, label="Width ")
+        dimensionZHeader = wx.StaticText(panel, label="Height ")
+        thicknessHeader = wx.StaticText(panel, label="Thickness ")
         self.dimensionXselect = wx.SpinCtrl(self.panel, min=10, max=1000, initial=100)
         self.dimensionYselect = wx.SpinCtrl(self.panel, min=10, max=1000, initial=100)
         self.dimensionZselect = wx.SpinCtrl(self.panel, min=1, max=100, initial=10)
-        self.dimensionSizer.Add(dimensionMainHeader, pos=(0, 0), span=(1,3))
+        self.thicknessSelect = floatspin.FloatSpin(self.panel, min_val=0.01, max_val=1, increment=0.01, value=0.05)
+        self.thicknessSelect.SetFormat("%f")
+        self.thicknessSelect.SetDigits(2)
+        self.dimensionSizer.Add(dimensionMainHeader, pos=(0, 0), span=(1,4))
         self.dimensionSizer.Add(dimensionXHeader, pos=(1, 0))
         self.dimensionSizer.Add(dimensionYHeader, pos=(1, 1))
         self.dimensionSizer.Add(dimensionZHeader, pos=(1, 2))
+        self.dimensionSizer.Add(thicknessHeader, pos=(1, 3))
         self.dimensionSizer.Add(self.dimensionXselect, pos=(2, 0))
         self.dimensionSizer.Add(self.dimensionYselect, pos=(2, 1))
         self.dimensionSizer.Add(self.dimensionZselect, pos=(2, 2))
+        self.dimensionSizer.Add(self.thicknessSelect, pos=(2, 3))
         sizer.Add(self.dimensionSizer, pos=(2, 0), span=(1,2))
         
         self.buttonGenerate = wx.Button(panel, label="Generate", size=(90, 28))
@@ -245,7 +252,8 @@ class MainWindow(wx.Frame):
             colors = [ColorDefinition(color, self.getColorType(color), self.getParameter(color)) for color in self.colors]
             grayscaleImagePath, grayscaleImageReso = generateGreyScaleImage(self.imagePath, colors, self.pixel_list_labels, self.relevant_label_to_color_hexes)
             desiredSize = (self.dimensionXselect.GetValue(), self.dimensionYselect.GetValue(),self.dimensionZselect.GetValue())
-            meshMandatoryParams = MeshMandatoryParameters(self.imagePath, grayscaleImageReso, desiredSize=desiredSize)
+            desiredThickness = self.thicknessSelect.GetValue()
+            meshMandatoryParams = MeshMandatoryParameters(self.imagePath, grayscaleImageReso, desiredSize=desiredSize, desiredThickness=desiredThickness)
             MainWindow.callUpdateProgress(50, "Generating STL file")
             generateSTL(grayscaleImagePath, meshMandatoryParams)
             MainWindow.callUpdateProgress(100)
