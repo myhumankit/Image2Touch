@@ -22,3 +22,12 @@
 ## How to run the GUI
 1. Create a python virtual environment with `conda env create -f env_mhk.yml`
 2. Inside this new environment, launch `python main.py`
+
+## How to setup run and debug for VSCode
+1. Create a python virtual environment as explained in the previous section
+2. Make sure pyinstaller is installed in your environment
+3. Create a file named ".env", and inside define PYTHONPATH pointing to your environment, for example : `PYTHONPATH="C:\[...]\mhk\python.exe"`
+## How to setup run and debug for VSCode
+1. Create a python virtual environment as explained in the previous section
+2. Make sure pyinstaller is installed in your environment
+3. Create a file named ".env", and inside define PYTHONPATH pointing to your environment, for example : `PYTHONPATH="C:\[...]\mhk\python.exe"`

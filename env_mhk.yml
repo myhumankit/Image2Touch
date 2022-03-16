@@ -13,4 +13,5 @@ dependencies:
     - bpy==2.82.1
     - wxpython==4.1.1
     - pypubsub==4.0.3
+    - pyinstaller==4.9
 

@@ -1,2 +1,10 @@
 # Python temporary files
 __pycache__
+
+# User environment (with python path)
+.env
+
+# Build files
+build/
+dist/
+*.spec
