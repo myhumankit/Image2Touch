@@ -31,10 +31,10 @@ class MainWindow(wx.Frame):
         self.panel = panel
         self.sizer = sizer
         
-        self.imagePathText = wx.StaticText(panel, label="Select a file")
+        self.imagePathText = wx.StaticText(panel, label="No file selected")
         sizer.Add(self.imagePathText, pos=(0, 0))
         
-        self.buttonOpen = wx.Button(panel, label="...", size=(90, 28))
+        self.buttonOpen = wx.Button(panel, label="Select a &file...", size=(90, 28))
         self.buttonOpen.Bind(wx.EVT_BUTTON,self.onOpen)
         sizer.Add(self.buttonOpen, pos=(0, 1))
         
@@ -64,7 +64,7 @@ class MainWindow(wx.Frame):
         self.dimensionSizer.Add(self.thicknessSelect, pos=(2, 3))
         sizer.Add(self.dimensionSizer, pos=(2, 0), span=(1,2))
         
-        self.buttonGenerate = wx.Button(panel, label="Generate", size=(90, 28))
+        self.buttonGenerate = wx.Button(panel, label="&Generate", size=(90, 28))
         self.buttonGenerate.Bind(wx.EVT_BUTTON,self.onGenerate)
         sizer.Add(self.buttonGenerate, pos=(3, 0), span=(1,2), flag=wx.EXPAND)
         
