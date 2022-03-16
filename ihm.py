@@ -67,6 +67,7 @@ class MainWindow(wx.Frame):
         self.buttonGenerate = wx.Button(panel, label="&Generate", size=(90, 28))
         self.buttonGenerate.Bind(wx.EVT_BUTTON,self.onGenerate)
         sizer.Add(self.buttonGenerate, pos=(3, 0), span=(1,2), flag=wx.EXPAND)
+        self.buttonGenerate.Disable() # This button is disabled at first and enabled when an image loads
         
         self.gaugeText = wx.StaticText(panel, label="Idle")
         sizer.Add(self.gaugeText, pos=(4, 0))
