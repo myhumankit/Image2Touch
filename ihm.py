@@ -256,7 +256,7 @@ class MainWindow(wx.Frame):
             desiredThickness = self.thicknessSelect.GetValue()
             meshMandatoryParams = MeshMandatoryParameters(self.imagePath, grayscaleImageReso, desiredSize=desiredSize, desiredThickness=desiredThickness)
             MainWindow.callUpdateProgress(50, "Generating STL file")
-            generateSTL(grayscaleImagePath, meshMandatoryParams)
+            generateSTL(grayscaleImagePath, meshMandatoryParams,MainWindow.callUpdateProgress)
             MainWindow.callUpdateProgress(100)
             wx.CallAfter(wx.MessageBox, 'STL generation successful !', 'Info', wx.OK)
         # TODO Better exception handling with specific exceptions

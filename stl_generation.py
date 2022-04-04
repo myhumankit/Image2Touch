@@ -24,7 +24,7 @@ class MeshMandatoryParameters:
 		self.desiredThickness = desiredThickness
 		
 
-def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters):
+def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters, fnUpdateProgress):
 	"""
 	Generate the mesh under the stl format.
 
@@ -93,6 +93,7 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	support.scale = Vector((meshMandatoryParameters.desiredSize[0]/2., meshMandatoryParameters.desiredSize[1]/2.,meshMandatoryParameters.desiredSize[2]))
 
 	# ## Creating the displace modifier
+	fnUpdateProgress(25, "Applying the depth map")
 	tex = bpy.data.textures.new("SourceImage", type = 'IMAGE')
 	tex.image = bpy.data.images.load(imagePath)
 	tex.filter_eccentricity = displaceEccentricity
@@ -105,6 +106,7 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	modifier.strength = displaceStrength
 
 	# ## Creating the smoother modifier
+	fnUpdateProgress(50, "Smoothing the resulting mesh")
 	smootherModifier = support.modifiers.new(name="Smoother", type='LAPLACIANSMOOTH')
 	smootherModifier.use_x = True
 	smootherModifier.use_y = True
@@ -117,6 +119,7 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	smootherModifier.use_normalized = True
 
 	# ## Creating the decimating modifier
+	fnUpdateProgress(75, "Removing useless vertices")
 	decimateModifier = support.modifiers.new(name="Decimator", type='DECIMATE')
 	decimateModifier.decimate_type = "DISSOLVE" 
 	decimateModifier.angle_limit = decimateAngleLimit
@@ -125,5 +128,6 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	triangulateModifier = support.modifiers.new(name="Triangulator", type='TRIANGULATE')
 
 	## Exporting the mesh in stl format
+	fnUpdateProgress(90, "Exporting the mesh")
 	bpy.ops.export_mesh.stl(filepath=outputMesh)
 	pass
