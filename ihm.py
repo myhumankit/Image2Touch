@@ -18,6 +18,10 @@ class MainWindow(wx.Frame):
         self.colorParamSelect = {}
         self.pixel_list_labels = []
         self.relevant_label_to_color_hexes = {}
+        self.img_width = 0
+        self.img_height = 0
+        self.max_height = 1000
+        self.max_width = 1000
 
         self.initUI()
         self.Centre()
@@ -47,9 +51,11 @@ class MainWindow(wx.Frame):
         dimensionYHeader = wx.StaticText(panel, label="Width ")
         dimensionZHeader = wx.StaticText(panel, label="Height ")
         thicknessHeader = wx.StaticText(panel, label="Thickness ")
-        self.dimensionXselect = wx.SpinCtrl(self.panel, min=10, max=1000, initial=100)
-        self.dimensionYselect = wx.SpinCtrl(self.panel, min=10, max=1000, initial=100)
+        self.dimensionXselect = wx.SpinCtrl(self.panel, min=10, max=self.max_width, initial=100)
+        self.dimensionYselect = wx.SpinCtrl(self.panel, min=10, max=self.max_height, initial=100)
         self.dimensionZselect = wx.SpinCtrl(self.panel, min=1, max=100, initial=10)
+        self.dimensionXselect.Bind(wx.EVT_SPINCTRL,self.onDimensionXChanged)
+        self.dimensionYselect.Bind(wx.EVT_SPINCTRL,self.onDimensionYChanged)
         self.thicknessSelect = floatspin.FloatSpin(self.panel, min_val=0.01, max_val=1, increment=0.01, value=0.05)
         self.thicknessSelect.SetFormat("%f")
         self.thicknessSelect.SetDigits(2)
@@ -142,14 +148,14 @@ class MainWindow(wx.Frame):
     def setImage(self, imageCtrl, imagePath):
         # scale the image, preserving the aspect ratio
         img = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
-        W = img.GetWidth()
-        H = img.GetHeight()
-        if W > H:
+        self.image_width = img.GetWidth()
+        self.image_height = img.GetHeight()
+        if self.image_width > self.image_height:
             NewW = self.PhotoMaxSize
-            NewH = self.PhotoMaxSize * H / W
+            NewH = self.PhotoMaxSize * self.image_height / self.image_width
         else:
             NewH = self.PhotoMaxSize
-            NewW = self.PhotoMaxSize * W / H
+            NewW = self.PhotoMaxSize * self.image_width / self.image_height
         img = img.Scale(NewW,NewH)
         # Update the image preview
         imageCtrl.SetBitmap(wx.BitmapFromImage(img))
@@ -236,6 +242,31 @@ class MainWindow(wx.Frame):
         select = self.colorParamSelect[color]
         return select.GetValue()
         
+    def onDimensionXChanged(self, event):
+        """When the height is changed, ajusts the width to keep the aspect ratio"""
+        if self.image_height > 0 and self.image_width > 0:
+            newx = self.dimensionXselect.GetValue()
+            newy = newx * self.image_height / self.image_width
+            if newy <= self.max_height:
+                self.dimensionYselect.SetValue(newy)
+            else:
+                # In case the value went over the maximum
+                newx = newx * self.max_height / newy
+                self.dimensionXselect.SetValue(newx)
+                self.onDimensionXChanged(event)
+    
+    def onDimensionYChanged(self, event):
+        """When the width is changed, ajusts the height to keep the aspect ratio"""
+        if self.image_height > 0 and self.image_width > 0:
+            newy = self.dimensionYselect.GetValue()
+            newx = newy * self.image_width / self.image_height
+            if newx <= self.max_width:
+                self.dimensionXselect.SetValue(newx)
+            else:
+                # In case the value went over the maximum
+                newy = newy * self.max_width / newx
+                self.dimensionYselect.SetValue(newy)
+                self.onDimensionYChanged(event)
         
     def onGenerate(self, event):
         """Behaviour of the 'generate' button"""
