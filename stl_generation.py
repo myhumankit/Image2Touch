@@ -44,7 +44,7 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	smoothingNbRepeats = 5.; # Number of times the smooth modifier is applied
 	smoothingFactor = 1.; # Lambda factor of the smooth modifier
 	smoothingBorder = 0. # Lambda factor in border
-	decimateAngleLimit = 0.1 # Maximum angle allowed
+	decimateAngleLimit = 0.1 # Maximum angle allowed, expressed in radians because it is the unit of Blender
 	outputMesh = ""
 	if (os.path.isdir(meshMandatoryParameters.outputMeshPath)):
 		# Create a name for the output mesh
