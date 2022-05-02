@@ -7,7 +7,7 @@ from mathutils import Vector
        
 class MeshMandatoryParameters:
 	"""Represents the different mandatory parameters to generate a mesh"""
-	def __init__(self, outputMeshPath:str, imageResolution: Tuple[int, int, int], numberOfPointsPerPixel: int = 8, desiredSize: Tuple[double, double, double] = (100., 100., 10.), desiredThickness: double = 0.05) -> None:
+	def __init__(self, outputMeshPath:str, imageResolution: Tuple[int, int, int], numberOfPointsPerPixel: int = 1, desiredSize: Tuple[double, double, double] = (100., 100., 10.), desiredThickness: double = 0.05, saveSTL : bool = True, saveBlendFile : bool = True) -> None:
 		"""Constructor of the MeshMandatoryParameters.
 
 		Args:
@@ -16,13 +16,33 @@ class MeshMandatoryParameters:
 			numberOfPointsPerPixel (int): The number of mesh points that are mapped to one pixel of the source image
 			desiredSize (tuple(double, double, double)): The desired dimensions (x, y, zmax), expressed in mm
 			desiredThickness(double): The desired thickness of the plane, in mm
+			saveSTL(bool): If True, an STL mesh will be generated
+			saveBlendFile(bool): If True, the resulting Blender scene will be saved
 		"""
 		self.outputMeshPath = outputMeshPath
 		self.imageResolution = imageResolution
 		self.numberOfPointsPerPixel = numberOfPointsPerPixel
 		self.desiredSize = desiredSize
 		self.desiredThickness = desiredThickness
+		self.saveSTL = desiredThickness
+		self.saveBlendFile = desiredThickness
 		
+
+def generateNameResultingFile(inputFilepath : str, desiredFormat : str):
+	"""
+	Generate a filename from the inputFilepath.
+
+	Args:
+		inputFilepath(str): The path towards the original file
+		desiredFormat(str): The format of the resulting file (WITHOUT the dot)
+	"""
+	resultingName = ""
+	if (os.path.isdir(inputFilepath)):
+		# Create a name for the output mesh
+		resultingName = os.path.join(inputFilepath, "result." + desiredFormat)
+	else:
+		resultingName = os.path.splitext(inputFilepath)[0] + "_result." + desiredFormat
+	return resultingName
 
 def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters, fnUpdateProgress):
 	"""
@@ -32,6 +52,10 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 		imagePath(str): The path towards the depth map image
 		meshMandatoryParameters(MeshMandatoryParameters): The mandatory parameters to generate the mesh
 	"""
+	# ## Check if the result of the generation will be saved in at least one format, otherwise raise an exception
+	if not(meshMandatoryParameters.saveBlendFile or meshMandatoryParameters.saveSTL):
+		raise("No output format detected, doing nothing")
+
 	# ## Makes an empty scene
 	for object in bpy.data.objects:
 		if not(object.name == "Cube" or object.name == "Support"):
@@ -45,12 +69,8 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	smoothingFactor = 1.; # Lambda factor of the smooth modifier
 	smoothingBorder = 0. # Lambda factor in border
 	decimateAngleLimit = 0.1 # Maximum angle allowed, expressed in radians because it is the unit of Blender
-	outputMesh = ""
-	if (os.path.isdir(meshMandatoryParameters.outputMeshPath)):
-		# Create a name for the output mesh
-		outputMesh = os.path.join(meshMandatoryParameters.outputMeshPath, "result.stl")
-	else:
-		outputMesh = os.path.splitext(meshMandatoryParameters.outputMeshPath)[0] + "-resultingMesh.stl"
+	outputMesh = generateNameResultingFile(meshMandatoryParameters.outputMeshPath, "stl")
+	outputBlenderScene = generateNameResultingFile(meshMandatoryParameters.outputMeshPath, "blend")
 
 	# ## Removing potential old vertex groups / modifiers of the support
 	support = bpy.data.objects[0]
@@ -129,5 +149,9 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 
 	## Exporting the mesh in stl format
 	fnUpdateProgress(90, "Exporting the mesh")
-	bpy.ops.export_mesh.stl(filepath=outputMesh)
+	if meshMandatoryParameters.saveSTL:
+		bpy.ops.export_mesh.stl(filepath=outputMesh)
+	
+	if meshMandatoryParameters.saveBlendFile:
+		bpy.ops.wm.save_as_mainfile(filepath=outputBlenderScene)
 	pass
