@@ -282,10 +282,10 @@ class MainWindow(wx.Frame):
         try:
             MainWindow.callUpdateProgress(0, "Generating height map")
             colors = [ColorDefinition(color, self.getColorType(color), self.getParameter(color)) for color in self.colors]
-            grayscaleImagePath, grayscaleImageReso = generateGreyScaleImage(self.imagePath, colors, self.pixel_list_labels, self.relevant_label_to_color_hexes)
+            grayscaleImagePath = generateGreyScaleImage(self.imagePath, colors, self.pixel_list_labels, self.relevant_label_to_color_hexes)
             desiredSize = (self.dimensionXselect.GetValue(), self.dimensionYselect.GetValue(),self.dimensionZselect.GetValue())
             desiredThickness = self.thicknessSelect.GetValue()
-            meshMandatoryParams = MeshMandatoryParameters(self.imagePath, grayscaleImageReso, desiredSize=desiredSize, desiredThickness=desiredThickness)
+            meshMandatoryParams = MeshMandatoryParameters(self.imagePath, desiredSize=desiredSize, desiredThickness=desiredThickness)
             MainWindow.callUpdateProgress(50, "Generating STL file")
             generateSTL(grayscaleImagePath, meshMandatoryParams,MainWindow.callUpdateProgress)
             MainWindow.callUpdateProgress(100)

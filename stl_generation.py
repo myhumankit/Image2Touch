@@ -7,12 +7,11 @@ from mathutils import Vector
        
 class MeshMandatoryParameters:
 	"""Represents the different mandatory parameters to generate a mesh"""
-	def __init__(self, outputMeshPath:str, imageResolution: Tuple[int, int, int], numberOfPointsPerPixel: int = 1, desiredSize: Tuple[double, double, double] = (100., 100., 10.), desiredThickness: double = 0.05, saveSTL : bool = True, saveBlendFile : bool = True) -> None:
+	def __init__(self, outputMeshPath:str, numberOfPointsPerPixel: int = 1, desiredSize: Tuple[double, double, double] = (100., 100., 10.), desiredThickness: double = 0.05, saveSTL : bool = True, saveBlendFile : bool = True) -> None:
 		"""Constructor of the MeshMandatoryParameters.
 
 		Args:
 			outputMeshPath(str): The path towards the output mesh
-			imageResolution(int, int, int): The resoluion of the depth map
 			numberOfPointsPerPixel (int): The number of mesh points that are mapped to one pixel of the source image
 			desiredSize (tuple(double, double, double)): The desired dimensions (x, y, zmax), expressed in mm
 			desiredThickness(double): The desired thickness of the plane, in mm
@@ -20,7 +19,6 @@ class MeshMandatoryParameters:
 			saveBlendFile(bool): If True, the resulting Blender scene will be saved
 		"""
 		self.outputMeshPath = outputMeshPath
-		self.imageResolution = imageResolution
 		self.numberOfPointsPerPixel = numberOfPointsPerPixel
 		self.desiredSize = desiredSize
 		self.desiredThickness = desiredThickness

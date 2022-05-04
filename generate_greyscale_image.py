@@ -42,8 +42,7 @@ def generateGreyScaleImage(imagePath, colors: List[ColorDefinition], pixelListLa
     
     # # Save the resulting image
     img_2 = np.reshape(pixel_list, img.shape).astype(np.uint8)
-    grayscaleImgReso = img_2.shape
     img_2_bgr = cv2.cvtColor(img_2, cv2.COLOR_RGB2BGR)
     _, outputImagePath = mkstemp(suffix=".png")
     cv2.imwrite(outputImagePath, img_2_bgr)
-    return outputImagePath, grayscaleImgReso
+    return outputImagePath
