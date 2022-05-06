@@ -7,14 +7,14 @@ from mathutils import Vector
        
 class MeshMandatoryParameters:
 	"""Represents the different mandatory parameters to generate a mesh"""
-	def __init__(self, outputMeshPath:str, numberOfPointsPerPixel: int = 1, desiredSize: Tuple[double, double, double] = (100., 100., 10.), desiredThickness: double = 0.05, saveSTL : bool = True, saveBlendFile : bool = True) -> None:
+	def __init__(self, outputMeshPath:str, numberOfPointsPerPixel: int = 1, desiredSize: Tuple[double, double, double] = (100., 100., 10.), desiredThickness: double = 5., saveSTL : bool = True, saveBlendFile : bool = True) -> None:
 		"""Constructor of the MeshMandatoryParameters.
 
 		Args:
 			outputMeshPath(str): The path towards the output mesh
 			numberOfPointsPerPixel (int): The number of mesh points that are mapped to one pixel of the source image
 			desiredSize (tuple(double, double, double)): The desired dimensions (x, y, zmax), expressed in mm
-			desiredThickness(double): The desired thickness of the plane, in mm
+			desiredThickness(double): The minimum desired thickness of the plane, in mm
 			saveSTL(bool): If True, an STL mesh will be generated
 			saveBlendFile(bool): If True, the resulting Blender scene will be saved
 		"""
@@ -22,8 +22,8 @@ class MeshMandatoryParameters:
 		self.numberOfPointsPerPixel = numberOfPointsPerPixel
 		self.desiredSize = desiredSize
 		self.desiredThickness = desiredThickness
-		self.saveSTL = desiredThickness
-		self.saveBlendFile = desiredThickness
+		self.saveSTL = saveSTL
+		self.saveBlendFile = saveBlendFile
 		
 
 def generateNameResultingFile(inputFilepath : str, desiredFormat : str):
@@ -61,10 +61,10 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	for tex in bpy.data.textures:
 		bpy.data.textures.remove(tex, do_unlink=True)
 	  
-	displaceEccentricity = 16; #Maximum excentricity of the texture : higher values reduces blur / at oblique angles but is slower
-	displaceStrength = 1.; #Amount to displace the geometry
-	smoothingNbRepeats = 5.; # Number of times the smooth modifier is applied
-	smoothingFactor = 1.; # Lambda factor of the smooth modifier
+	displaceEccentricity = 16 #Maximum excentricity of the texture : higher values reduces blur / at oblique angles but is slower
+	displaceStrength = 2. * (1. - meshMandatoryParameters.desiredThickness / meshMandatoryParameters.desiredSize[2]) #Amount to displace the geometry : 1. induces that a black color is equal to one half the height of the object so strength = 2. *(1-thickness/height)
+	smoothingNbRepeats = 5. # Number of times the smooth modifier is applied
+	smoothingFactor = 1. # Lambda factor of the smooth modifier
 	smoothingBorder = 0. # Lambda factor in border
 	decimateAngleLimit = 0.1 # Maximum angle allowed, expressed in radians because it is the unit of Blender
 	outputMesh = generateNameResultingFile(meshMandatoryParameters.outputMeshPath, "stl")
@@ -108,7 +108,7 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	innerupperface_vertex_group.add(innerupperface_group_data, 1.0, 'ADD')
 	
 	# ## Scaling the object
-	support.scale = Vector((meshMandatoryParameters.desiredSize[0]/2., meshMandatoryParameters.desiredSize[1]/2.,meshMandatoryParameters.desiredSize[2]))
+	support.scale = Vector((meshMandatoryParameters.desiredSize[0]/2., meshMandatoryParameters.desiredSize[1]/2.,meshMandatoryParameters.desiredSize[2]/2.))
 
 	# ## Creating the displace modifier
 	fnUpdateProgress(25, "Applying the depth map")
@@ -122,6 +122,7 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	modifier.vertex_group = 'UpperFaceGroup'
 	modifier.direction = "Z"
 	modifier.strength = displaceStrength
+	modifier.mid_level = 1. #Ensure that the final thickness of the object respects the user choice
 
 	# ## Creating the smoother modifier
 	fnUpdateProgress(50, "Smoothing the resulting mesh")
