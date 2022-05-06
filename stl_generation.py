@@ -24,6 +24,24 @@ class MeshMandatoryParameters:
 		self.desiredThickness = desiredThickness
 		self.saveSTL = saveSTL
 		self.saveBlendFile = saveBlendFile
+
+class OperatorsOpionalParameters:
+	"""Represents the different optional parameters used by the operators to generate a mesh"""
+	def __init__(self, displaceEccentricity: int = 16, smoothingNbRepeats: int = 5, smoothingFactor : double = 1., smoothingBorder : double = 0., decimateAngleLimit : double = 0.1) -> None:
+		"""Constructor of the MeshMandatoryParameters.
+
+		Args:
+			displaceEccentricity (int): Maximum excentricity of the texture : higher values reduces blur / at oblique angles but is slower
+			smoothingNbRepeats (int): Number of times the smooth modifier is applied
+			smoothingFactor (double): Lambda factor of the smooth modifier
+			smoothingBorder (double): Lambda factor in border
+			decimateAngleLimit (double): Maximum angle allowed, expressed in radians because it is the unit of Blender
+		"""
+		self.displaceEccentricity = displaceEccentricity 
+		self.smoothingNbRepeats = smoothingNbRepeats 
+		self.smoothingFactor = smoothingFactor 
+		self.smoothingBorder = smoothingBorder 
+		self.decimateAngleLimit = decimateAngleLimit
 		
 
 def generateNameResultingFile(inputFilepath : str, desiredFormat : str):
@@ -42,7 +60,7 @@ def generateNameResultingFile(inputFilepath : str, desiredFormat : str):
 		resultingName = os.path.splitext(inputFilepath)[0] + "_result." + desiredFormat
 	return resultingName
 
-def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters, fnUpdateProgress):
+def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters, operatorsOpionalParameters: OperatorsOpionalParameters, fnUpdateProgress):
 	"""
 	Generate the mesh under the stl format.
 
@@ -61,12 +79,12 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	for tex in bpy.data.textures:
 		bpy.data.textures.remove(tex, do_unlink=True)
 	  
-	displaceEccentricity = 16 #Maximum excentricity of the texture : higher values reduces blur / at oblique angles but is slower
+	displaceEccentricity = operatorsOpionalParameters.displaceEccentricity #Maximum excentricity of the texture : higher values reduces blur / at oblique angles but is slower
 	displaceStrength = 2. * (1. - meshMandatoryParameters.desiredThickness / meshMandatoryParameters.desiredSize[2]) #Amount to displace the geometry : 1. induces that a black color is equal to one half the height of the object so strength = 2. *(1-thickness/height)
-	smoothingNbRepeats = 5. # Number of times the smooth modifier is applied
-	smoothingFactor = 1. # Lambda factor of the smooth modifier
-	smoothingBorder = 0. # Lambda factor in border
-	decimateAngleLimit = 0.1 # Maximum angle allowed, expressed in radians because it is the unit of Blender
+	smoothingNbRepeats = operatorsOpionalParameters.smoothingNbRepeats # Number of times the smooth modifier is applied
+	smoothingFactor = operatorsOpionalParameters.smoothingFactor # Lambda factor of the smooth modifier
+	smoothingBorder = operatorsOpionalParameters.smoothingBorder # Lambda factor in border
+	decimateAngleLimit = operatorsOpionalParameters.decimateAngleLimit # Maximum angle allowed, expressed in radians because it is the unit of Blender
 	outputMesh = generateNameResultingFile(meshMandatoryParameters.outputMeshPath, "stl")
 	outputBlenderScene = generateNameResultingFile(meshMandatoryParameters.outputMeshPath, "blend")
 
