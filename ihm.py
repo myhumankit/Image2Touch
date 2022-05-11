@@ -22,6 +22,7 @@ class MainWindow(wx.Frame):
         self.img_height = 0
         self.max_height = 1000
         self.max_width = 1000
+        self.minimum_step_btw_highest_lowest_points = 1.0 # The minimum step of height between the highest point of the object and the lowest point of the top surface.
 
         self.initUI()
         self.Centre()
@@ -56,7 +57,8 @@ class MainWindow(wx.Frame):
         self.dimensionZselect = wx.SpinCtrl(self.panel, min=1, max=100, initial=10)
         self.dimensionXselect.Bind(wx.EVT_SPINCTRL,self.onDimensionXChanged)
         self.dimensionYselect.Bind(wx.EVT_SPINCTRL,self.onDimensionYChanged)
-        self.thicknessSelect = floatspin.FloatSpin(self.panel, min_val=0.5, max_val=100, increment=0.1, value=0.5)
+        self.thicknessSelect = floatspin.FloatSpin(self.panel, min_val=0.5, max_val=self.max_height, increment=0.1, value=2.)
+        self.thicknessSelect.Bind(wx.EVT_SPINCTRL,self.onThicknessChanged)
         self.thicknessSelect.SetFormat("%f")
         self.thicknessSelect.SetDigits(1)
         self.dimensionSizer.Add(dimensionMainHeader, pos=(0, 0), span=(1,4))
@@ -267,6 +269,14 @@ class MainWindow(wx.Frame):
                 newy = newy * self.max_width / newx
                 self.dimensionYselect.SetValue(newy)
                 self.onDimensionYChanged(event)
+
+    def onThicknessChanged(self, event):
+        """When the thickness, i.e. the minimal height of the object, is changed, we check if the value is lower than the current height"""
+        currentHeight = self.dimensionZselect.GetValue()
+        maxThickness = currentHeight - self.minimum_step_btw_highest_lowest_points
+        if self.thicknessSelect.GetValue() > maxThickness:
+            self.thicknessSelect.SetValue(maxThickness)
+            
         
     def onGenerate(self, event):
         """Behaviour of the 'generate' button"""
