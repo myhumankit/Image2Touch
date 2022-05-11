@@ -7,6 +7,7 @@ from generate_greyscale_image import generateGreyScaleImage
 from color_types import ColorType, ColorDefinition
 from stl_generation import MeshMandatoryParameters, OperatorsOpionalParameters, generateSTL
 import os
+import time
 
 class MainWindow(wx.Frame):
     """The main window of the application"""
@@ -330,9 +331,12 @@ class MainWindow(wx.Frame):
             meshMandatoryParams = MeshMandatoryParameters(self.imagePath, desiredSize=desiredSize, desiredThickness=desiredThickness)
             operatorsOpionalParameters = OperatorsOpionalParameters(smoothingNbRepeats = self.smoothingNbRepeatsselect.GetValue(), smoothingFactor = self.smoothingFactorselect.GetValue(), smoothingBorder = self.smoothingBorderselect.GetValue(), decimateAngleLimit = self.decimateselect.GetValue())
             MainWindow.callUpdateProgress(50, "Generating STL file")
+            startTime = time.time()
             generateSTL(grayscaleImagePath, meshMandatoryParameters= meshMandatoryParams,operatorsOpionalParameters = operatorsOpionalParameters, fnUpdateProgress= MainWindow.callUpdateProgress)
+            endGenerationTime = time.time()
             MainWindow.callUpdateProgress(100)
-            wx.CallAfter(wx.MessageBox, 'STL generation successful !', 'Info', wx.OK)
+            message = 'STL generation successful ! Elapsed time : %.2f s' % (endGenerationTime - startTime)
+            wx.CallAfter(wx.MessageBox, message, 'Info', wx.OK)
         # TODO Better exception handling with specific exceptions
         except Exception as ex:
             MainWindow.callUpdateProgress(0, "Unsuccessful")
