@@ -72,16 +72,23 @@ class MainWindow(wx.Frame):
         self.dimensionSizer.Add(self.thicknessSelect, pos=(2, 3))
         sizer.Add(self.dimensionSizer, pos=(2, 0), span=(1,2))
         
+        self.checkboxSaveSTLFile = wx.CheckBox(panel, label='Save STL file')
+        self.checkboxSaveSTLFile.SetValue(True)
+        sizer.Add(self.checkboxSaveSTLFile, pos=(3, 0))
+        
+        self.checkboxSaveBlendFile = wx.CheckBox(panel, label='Save Blend file')  
+        sizer.Add(self.checkboxSaveBlendFile, pos=(3, 1))
+
         self.buttonGenerate = wx.Button(panel, label="&Generate", size=(90, 28))
         self.buttonGenerate.Bind(wx.EVT_BUTTON,self.onGenerate)
-        sizer.Add(self.buttonGenerate, pos=(3, 0), span=(1,2), flag=wx.EXPAND)
+        sizer.Add(self.buttonGenerate, pos=(4, 0), span=(1,2), flag=wx.EXPAND)
         self.buttonGenerate.Disable() # This button is disabled at first and enabled when an image loads
         
         self.gaugeText = wx.StaticText(panel, label="Idle")
-        sizer.Add(self.gaugeText, pos=(4, 0))
+        sizer.Add(self.gaugeText, pos=(5, 0))
         
         self.gauge = wx.Gauge(panel, range=100)
-        sizer.Add(self.gauge, pos=(5,0), span=(1,2), flag=wx.EXPAND)
+        sizer.Add(self.gauge, pos=(6,0), span=(1,2), flag=wx.EXPAND)
         
         self.PhotoMaxSize = 100
         self.imageCtrl = wx.StaticBitmap(self.panel, wx.ID_ANY, 
@@ -102,11 +109,15 @@ class MainWindow(wx.Frame):
         """Disables all buttons to prevent interaction during other work"""
         self.buttonOpen.Disable()
         self.buttonGenerate.Disable()
-        
+        self.checkboxSaveSTLFile.Disable()
+        self.checkboxSaveBlendFile.Disable()
+
     def enableButtons(self):
         """Disables all buttons to prevent interaction during other work"""
         self.buttonOpen.Enable()
-        self.buttonGenerate.Enable()
+        self.buttonGenerate.Enable()        
+        self.checkboxSaveSTLFile.Enable()
+        self.checkboxSaveBlendFile.Enable()
         
     def refresh(self):
         """Refreshes the layout of the window (this needs to happen if elements change size)"""
@@ -286,24 +297,32 @@ class MainWindow(wx.Frame):
                     
     def generate(self):
         """Generates the STL file. Runs in a thread."""
-        # Prevents the user from interacting with the software
-        wx.CallAfter(self.disableButtons)
-        
-        try:
-            MainWindow.callUpdateProgress(0, "Generating height map")
-            colors = [ColorDefinition(color, self.getColorType(color), self.getParameter(color)) for color in self.colors]
-            grayscaleImagePath = generateGreyScaleImage(self.imagePath, colors, self.pixel_list_labels, self.relevant_label_to_color_hexes)
-            desiredSize = (self.dimensionXselect.GetValue(), self.dimensionYselect.GetValue(),self.dimensionZselect.GetValue())
-            desiredThickness = self.thicknessSelect.GetValue()
-            meshMandatoryParams = MeshMandatoryParameters(self.imagePath, desiredSize=desiredSize, desiredThickness=desiredThickness)
-            MainWindow.callUpdateProgress(50, "Generating STL file")
-            generateSTL(grayscaleImagePath, meshMandatoryParams,MainWindow.callUpdateProgress)
-            MainWindow.callUpdateProgress(100)
-            wx.CallAfter(wx.MessageBox, 'STL generation successful !', 'Info', wx.OK)
-        # TODO Better exception handling with specific exceptions
-        except Exception as ex:
-            MainWindow.callUpdateProgress(0, "Unsuccessful")
-            wx.CallAfter(wx.MessageBox, 'STL generation unsuccessful : '+str(ex), 'Error', wx.OK | wx.ICON_ERROR)
-        finally:
-            # Allow the user further interaction with the software
-            wx.CallAfter(self.enableButtons)
+        saveBlendFile=self.checkboxSaveBlendFile.GetValue()
+        saveSTL=self.checkboxSaveSTLFile.GetValue()
+
+        if (not saveBlendFile and not saveSTL):
+            wx.CallAfter(wx.MessageBox, 'Please, choose at least one file type to save', 'Warning', wx.OK | wx.ICON_WARNING)
+        else:
+            # Prevents the user from interacting with the software
+            wx.CallAfter(self.disableButtons)            
+
+            try:
+                MainWindow.callUpdateProgress(0, "Generating height map")
+                colors = [ColorDefinition(color, self.getColorType(color), self.getParameter(color)) for color in self.colors]
+                grayscaleImagePath = generateGreyScaleImage(self.imagePath, colors, self.pixel_list_labels, self.relevant_label_to_color_hexes)
+                desiredSize = (self.dimensionXselect.GetValue(), self.dimensionYselect.GetValue(),self.dimensionZselect.GetValue())
+                desiredThickness = self.thicknessSelect.GetValue()
+                saveBlendFile=self.checkboxSaveBlendFile.GetValue()
+                saveSTL=self.checkboxSaveSTLFile.GetValue()            
+                meshMandatoryParams = MeshMandatoryParameters(self.imagePath, desiredSize=desiredSize, desiredThickness=desiredThickness, saveBlendFile=saveBlendFile, saveSTL=saveSTL)
+                MainWindow.callUpdateProgress(50, "Generating STL file")
+                generateSTL(grayscaleImagePath, meshMandatoryParams,MainWindow.callUpdateProgress)
+                MainWindow.callUpdateProgress(100)
+                wx.CallAfter(wx.MessageBox, 'STL generation successful !', 'Info', wx.OK)
+            # TODO Better exception handling with specific exceptions
+            except Exception as ex:
+                MainWindow.callUpdateProgress(0, "Unsuccessful")
+                wx.CallAfter(wx.MessageBox, 'STL generation unsuccessful : '+str(ex), 'Error', wx.OK | wx.ICON_ERROR)
+            finally:
+                # Allow the user further interaction with the software
+                wx.CallAfter(self.enableButtons)
