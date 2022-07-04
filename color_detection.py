@@ -17,7 +17,7 @@ def findColorsAndMakeNewImage(imagePath, fnUpdateProgress):
     """
     
     # Parameters that could become arguments
-    carre_distance_min = 500
+    carre_distance_min = 100
     prct = .003
     min_same_neighbours = 4
     
