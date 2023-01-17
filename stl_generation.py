@@ -87,7 +87,7 @@ def generate_vertices_top(grayscale_image: np.ndarray, pts_par_px: int = 1) -> n
 def generate_vertices_border(grayscale_image: np.ndarray, pts_par_px: int = 1) -> np.ndarray:
     nb_pts_x = grayscale_image.shape[0]*pts_par_px
     nb_pts_y = grayscale_image.shape[1]*pts_par_px
-    vertices_border = np.array([(x, y, 1) for y in range(nb_pts_y) for x in range(nb_pts_x) if x == 0 or y == 0 or x == nb_pts_x-1 or y == nb_pts_y-1])
+    vertices_border = np.array([(x, y, -1) for y in range(nb_pts_y) for x in range(nb_pts_x) if x == 0 or y == 0 or x == nb_pts_x-1 or y == nb_pts_y-1])
     vertices_border = vertices_border / (nb_pts_x-1, nb_pts_y-1, 10)
     return vertices_border
 
@@ -201,9 +201,11 @@ def generate_mesh(image_path: str, desired_width: float, desired_height: float, 
     vertices_border = generate_vertices_border(grayscale_image, pts_par_px)
     vertices_bottom = generate_vertices_bottom()
     
-    vertices_top = scale_vertices(vertices_top, (desired_width, desired_height, desired_thikness_top))
-    vertices_border = scale_vertices(vertices_border, (desired_width, desired_height, desired_thikness_base))
-    vertices_bottom = scale_vertices(vertices_bottom, (desired_width, desired_height, desired_thikness_base))
+    # OpenCV uses x for rows and y for columns, such as [0,1] is top right and [1,0] botttom left
+    # We want to use the opposite, so width and height are reversed in the following lines
+    vertices_top = scale_vertices(vertices_top, (desired_height, desired_width, desired_thikness_top))
+    vertices_border = scale_vertices(vertices_border, (desired_height, desired_width, desired_thikness_base))
+    vertices_bottom = scale_vertices(vertices_bottom, (desired_height, desired_width, desired_thikness_base))
     
     all_vertices = np.vstack((vertices_top, vertices_border, vertices_bottom))
     
