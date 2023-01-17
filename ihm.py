@@ -49,10 +49,10 @@ class MainWindow(wx.Frame):
         
         self.dimensionSizer = wx.GridBagSizer(3,4)
         dimensionMainHeader = wx.StaticText(panel, label="Dimensions (mm) :")
-        dimensionXHeader = wx.StaticText(panel, label="Length ")
-        dimensionYHeader = wx.StaticText(panel, label="Width ")
-        dimensionZHeader = wx.StaticText(panel, label="Height ")
-        thicknessHeader = wx.StaticText(panel, label="Thickness ")
+        dimensionXHeader = wx.StaticText(panel, label="Width ")
+        dimensionYHeader = wx.StaticText(panel, label="Height ")
+        dimensionZHeader = wx.StaticText(panel, label="Base Thickness ")
+        thicknessHeader = wx.StaticText(panel, label="Shape Thickness ")
         self.dimensionXselect = wx.SpinCtrl(self.panel, min=10, max=self.max_width, initial=100)
         self.dimensionYselect = wx.SpinCtrl(self.panel, min=10, max=self.max_height, initial=100)
         self.dimensionZselect = wx.SpinCtrl(self.panel, min=1, max=100, initial=10)
@@ -226,6 +226,9 @@ class MainWindow(wx.Frame):
         
         # Triggers the appearance of the color UI
         wx.CallAfter(self.onColorsChanged)
+        
+        # Triggers the aspect ratio logic
+        wx.CallAfter(self.onDimensionXChanged, None)
         
         # Allow the user further interaction with the software
         wx.CallAfter(self.enableButtons)
