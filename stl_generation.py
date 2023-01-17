@@ -254,11 +254,27 @@ def blender_add_decimate_modifier(object, ratio: float, apply: bool) -> None:
     if(apply):
         bpy.ops.object.modifier_apply(modifier="Decimator")
 
-def approximation_ratio_decimate(vertices: np.ndarray):
-    # calcul empirique ajustant le ratio en fonction de la quantité de pixels
-    # on garde 2* le nombre de points correspondant au périmètre de l'image (nb de points total - points de la face supérieure)
-    # On veut donc obtenir :ratio = 1 - (p/a+p+4) avec a l'aire, et p le périmètre. En approximant w=h~=sqrt(n)=s, on a a=s*s et p=4s-4, d'où ratio = 4s/n
+def approximation_decimate_ratio(vertices: np.ndarray):
+    # Empirical calculation of the decimation ratio
+    # We want to keep twice the amount of vertices corresponding to the perimeter of the image
+    # We approximate that the image is a square of dimentions sqrt(n)*sqrt(n) where n is the amount of vertices
+    # With this approximation, we have the perimeter p = 4s-4, appoximated to 4s
+    # So we want to keep 4s vertices, which is 4s/n % of vertices
     return 4*math.sqrt(len(vertices))/len(vertices)
+
+def blender_add_weld_modifier(object, merge_threshold: float, apply: bool) -> None:
+    weldModifier = object.modifiers.new(name="Weld", type='WELD')
+    weldModifier.merge_threshold = merge_threshold
+    
+    if(apply):
+        bpy.ops.object.modifier_apply(modifier="Decimator")
+
+def approximation_weld_threshold(vertices: np.ndarray):
+    # This thershold will merge together pixels that are close together
+    # This should only apply to pixels in the same plane, unless planes are very close together
+    # The distance between two neighbour vertices of the same plane is equal to the first vertex's x coordinate
+    # We multiply this value by 1.5 (> sqrt(2)) to allow merging of diagonal vertices
+    return 1.5*vertices[1][0]
 
 def blender_export(filepath: str, stl: bool = True, blend: bool = False) -> None:
     if stl:
@@ -271,7 +287,8 @@ def blender_generate_stl(filepath: str, vertices: np.ndarray, faces: np.ndarray,
     blender_new_empty_scene()
     object = blender_new_object(vertices, faces)
     blender_select_object(object)
-    blender_add_decimate_modifier(object, approximation_ratio_decimate(vertices), apply=False)
+    blender_add_decimate_modifier(object, approximation_decimate_ratio(vertices), apply=False)
+    blender_add_weld_modifier(object, approximation_weld_threshold(vertices), apply=False)
     blender_export(filepath, stl=stl, blend=blend)
 
 #endregion
