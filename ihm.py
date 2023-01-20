@@ -78,7 +78,7 @@ class MainWindow(wx.Frame):
         smoothingNbRepeatsHeader = wx.StaticText(panel, label="smoothingNbRepeats ")
         smoothingFactorHeader = wx.StaticText(panel, label="smoothingFactor ")
         smoothingBorderHeader = wx.StaticText(panel, label="smoothingBorder ")
-        self.smoothingNbRepeatsselect = wx.SpinCtrl(self.panel, min=1, initial=5.)
+        self.smoothingNbRepeatsselect = wx.SpinCtrl(self.panel, min=1, initial=5)
         self.smoothingFactorselect = floatspin.FloatSpin(self.panel, min_val=0., increment=0.01,  value=1.)
         self.smoothingFactorselect.SetFormat("%f")
         self.smoothingFactorselect.SetDigits(2)
@@ -168,7 +168,7 @@ class MainWindow(wx.Frame):
             message = "Done"
         if message != "":
             self.gaugeText.SetLabel(message)
-        self.gauge.SetValue(value)
+        self.gauge.SetValue(int(value))
         
     def onOpen(self, event):
         """Behaviour for the '...' button. An image file can be selected for processing"""
@@ -202,7 +202,7 @@ class MainWindow(wx.Frame):
         else:
             NewH = self.PhotoMaxSize
             NewW = self.PhotoMaxSize * self.image_width / self.image_height
-        img = img.Scale(NewW,NewH)
+        img = img.Scale(int(NewW),int(NewH))
         # Update the image preview
         imageCtrl.SetBitmap(wx.BitmapFromImage(img))
     
@@ -297,12 +297,12 @@ class MainWindow(wx.Frame):
             newx = self.dimensionXselect.GetValue()
             newy = newx * self.image_height / self.image_width
             if newy <= self.max_height:
-                self.dimensionYselect.SetValue(newy)
+                self.dimensionYselect.SetValue(int(newy))
             else:
                 # In case the value went over the maximum
                 newx = newx * self.max_height / newy
-                self.dimensionXselect.SetValue(newx)
-                self.onDimensionXChanged(event)
+                self.dimensionXselect.SetValue(int(newx))
+                self.onDimensionXChanged(int(event))
     
     def onDimensionYChanged(self, event):
         """When the width is changed, ajusts the height to keep the aspect ratio"""
@@ -310,11 +310,11 @@ class MainWindow(wx.Frame):
             newy = self.dimensionYselect.GetValue()
             newx = newy * self.image_width / self.image_height
             if newx <= self.max_width:
-                self.dimensionXselect.SetValue(newx)
+                self.dimensionXselect.SetValue(int(newx))
             else:
                 # In case the value went over the maximum
                 newy = newy * self.max_width / newx
-                self.dimensionYselect.SetValue(newy)
+                self.dimensionYselect.SetValue(int(newy))
                 self.onDimensionYChanged(event)
 
     def onThicknessChanged(self, event):
@@ -354,7 +354,8 @@ class MainWindow(wx.Frame):
                 operatorsOpionalParameters = OperatorsOpionalParameters(smoothingNbRepeats = self.smoothingNbRepeatsselect.GetValue(), smoothingFactor = self.smoothingFactorselect.GetValue(), smoothingBorder = self.smoothingBorderselect.GetValue(), decimateAngleLimit = self.decimateselect.GetValue())
                 MainWindow.callUpdateProgress(50, "Generating STL file")
                 startTime = time.time()
-                generateSTL(grayscaleImagePath, meshMandatoryParameters= meshMandatoryParams,operatorsOpionalParameters = operatorsOpionalParameters, fnUpdateProgress= MainWindow.callUpdateProgress)
+                stlUpdateProgress = lambda value, text : MainWindow.callUpdateProgress(50+value/2, text)
+                generateSTL(grayscaleImagePath, meshMandatoryParameters = meshMandatoryParams,operatorsOpionalParameters = operatorsOpionalParameters, fnUpdateProgress = stlUpdateProgress)
                 endGenerationTime = time.time()
                 MainWindow.callUpdateProgress(100)
                 message = 'STL generation successful ! Elapsed time : %.2f s' % (endGenerationTime - startTime)
