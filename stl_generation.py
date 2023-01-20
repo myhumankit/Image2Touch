@@ -231,7 +231,7 @@ def blender_new_empty_scene() -> None:
 		bpy.data.textures.remove(tex, do_unlink=True)
 
 
-def blender_new_object(vertices: np.ndarray, faces: np.ndarray, object_name: str = "object", mesh_name: str = "mesh"):
+def blender_new_object(vertices: np.ndarray, faces: np.ndarray, object_name: str = "object", mesh_name: str = "mesh") -> bpy.types.Object:
     vertices = list(vertices)
     edges = []
     faces = list(faces)
@@ -242,19 +242,32 @@ def blender_new_object(vertices: np.ndarray, faces: np.ndarray, object_name: str
     object = bpy.data.objects.new(object_name, mesh)
     bpy.context.collection.objects.link(object)
     return object
+    
+def blender_create_vertex_groups(object: bpy.types.Object, vertices: np.ndarray) -> None:
+    max_x = max(vertices ,key=lambda item:item[0])[0]
+    max_y = max(vertices ,key=lambda item:item[1])[1]
+    indices_of_face_vertices = [i for i,(x,y,_) in enumerate(vertices) if x != 0 and y != 0 and x != max_x and y != max_y]
+    indices_of_side_vertices = [i for i,(x,y,_) in enumerate(vertices) if x == 0 or y == 0 or x == max_x or y == max_y]
+    
+    face_vertex_group = object.vertex_groups.new(name='Face')
+    face_vertex_group.add(indices_of_face_vertices, 1.0, 'ADD')
+    
+    side_vertex_group = object.vertex_groups.new(name='Sides')
+    side_vertex_group.add(indices_of_side_vertices, 1.0, 'ADD')
+    
 
-def blender_select_object(object) -> None:
+def blender_select_object(object: bpy.types.Object) -> None:
     bpy.context.view_layer.objects.active = object
 
 
-def blender_add_decimate_modifier(object, ratio: float, apply: bool) -> None:
+def blender_add_decimate_modifier(object: bpy.types.Object, ratio: float, apply: bool = False) -> None:
     decimateModifier = object.modifiers.new(name="Decimator", type='DECIMATE')
     decimateModifier.ratio = ratio
     
     if(apply):
         bpy.ops.object.modifier_apply(modifier="Decimator")
 
-def approximation_decimate_ratio(vertices: np.ndarray):
+def approximation_decimate_ratio(vertices: np.ndarray) -> double:
     # Empirical calculation of the decimation ratio
     # We want to keep twice the amount of vertices corresponding to the perimeter of the image
     # We approximate that the image is a square of dimentions sqrt(n)*sqrt(n) where n is the amount of vertices
@@ -262,33 +275,52 @@ def approximation_decimate_ratio(vertices: np.ndarray):
     # So we want to keep 4s vertices, which is 4s/n % of vertices
     return 4*math.sqrt(len(vertices))/len(vertices)
 
-def blender_add_weld_modifier(object, merge_threshold: float, apply: bool) -> None:
+def blender_add_planar_decimate_modifier(object: bpy.types.Object, angle_limit_deg: float, apply: bool = False) -> None:
+    decimateModifier = object.modifiers.new(name="Planar Decimator", type='DECIMATE')
+    decimateModifier.decimate_type = 'DISSOLVE'
+    decimateModifier.angle_limit = math.radians(angle_limit_deg)
+    
+    if(apply):
+        bpy.ops.object.modifier_apply(modifier="Planar Decimator")
+
+def blender_add_weld_modifier(object: bpy.types.Object, merge_threshold: float, vertex_group: str = "Face", apply: bool = False) -> None:
     weldModifier = object.modifiers.new(name="Weld", type='WELD')
+    weldModifier.mode = 'CONNECTED'
     weldModifier.merge_threshold = merge_threshold
+    weldModifier.vertex_group = vertex_group
     
     if(apply):
         bpy.ops.object.modifier_apply(modifier="Decimator")
 
-def approximation_weld_threshold(vertices: np.ndarray):
+def blender_add_triangulate_modifier(object: bpy.types.Object, apply: bool = False) -> None:
+    object.modifiers.new(name="Triangulate", type='TRIANGULATE')
+
+    if(apply):
+        bpy.ops.object.modifier_apply(modifier="Triangulate")
+
+def approximation_weld_threshold(vertices: np.ndarray, merge_radius: double = 3) -> double:
     # This thershold will merge together pixels that are close together
     # This should only apply to pixels in the same plane, unless planes are very close together
     # The distance between two neighbour vertices of the same plane is equal to the first vertex's x coordinate
     # We multiply this value by 1.5 (> sqrt(2)) to allow merging of diagonal vertices
-    return 1.5*vertices[1][0]
+    # We then multiply by merge_radius in order to merge vertices that are n spaces away
+    return 1.5*merge_radius*vertices[1][0]
 
 def blender_export(filepath: str, stl: bool = True, blend: bool = False) -> None:
     if stl:
-        bpy.ops.export_mesh.stl(filepath=f"{filepath}.stl")
+        bpy.ops.export_mesh.stl(filepath=f"{filepath}.stl", use_mesh_modifiers=True)
     if blend:
         bpy.ops.wm.save_as_mainfile(filepath=f"{filepath}.blend")
-
 
 def blender_generate_stl(filepath: str, vertices: np.ndarray, faces: np.ndarray, stl: bool = True, blend: bool = False):
     blender_new_empty_scene()
     object = blender_new_object(vertices, faces)
     blender_select_object(object)
+    blender_create_vertex_groups(object, vertices)
     blender_add_decimate_modifier(object, approximation_decimate_ratio(vertices), apply=False)
-    blender_add_weld_modifier(object, approximation_weld_threshold(vertices), apply=False)
+    blender_add_weld_modifier(object, approximation_weld_threshold(vertices), vertex_group="Face", apply=False)
+    blender_add_planar_decimate_modifier(object, angle_limit_deg=5, apply=False)
+    blender_add_triangulate_modifier(object, apply=False)
     blender_export(filepath, stl=stl, blend=blend)
 
 #endregion
@@ -311,7 +343,11 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	desired_height = meshMandatoryParameters.desiredSize[1]
 	desired_thickness_top = meshMandatoryParameters.desiredThickness
 	desired_thickness_bottom = meshMandatoryParameters.desiredSize[2]
+ 
+	fnUpdateProgress(0, "Generation of the base mesh")
 	vertices, faces = generate_mesh(imagePath, desired_width, desired_height, desired_thickness_top, desired_thickness_bottom)
+	fnUpdateProgress(50, "Applying modifiers and exporting")
 	blender_generate_stl(meshMandatoryParameters.outputMeshPath, vertices, faces, stl=meshMandatoryParameters.saveSTL, blend=meshMandatoryParameters.saveBlendFile)
+	fnUpdateProgress(1000, "Done")
 
 #endregion
