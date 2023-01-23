@@ -1,6 +1,7 @@
 import sys
 import threading
 import time
+from PIL import Image
 from color_types import ColorType, ColorDefinition
 from color_detection import findColorsAndMakeNewImage
 from generate_greyscale_image import generateGreyScaleImage
@@ -18,8 +19,8 @@ class MainClass():
         self.colorParamSelect = {}
         self.pixel_list_labels = []
         self.relevant_label_to_color_hexes = {}
-        self.img_width = 0
-        self.img_height = 0
+        self.image_width = 0
+        self.image_width = 0
         self.max_height = 1000
         self.max_width = 1000
         self.minimum_step_btw_highest_lowest_points = 1.0 # The minimum step of height between the highest point of the object and the lowest point of the top surface.
@@ -62,8 +63,10 @@ class MainClass():
         saveBlendFile=True
         saveSTL=True
         
+        img = Image.open(self.flatImagePath)
         dimensionXselect = 100
-        dimensionYselect = 100
+        dimensionYselect = int(dimensionXselect * img.height / img.width)
+        
         dimensionZselect = 2 
         thicknessSelect = 2
         smoothingNbRepeats = 1
