@@ -283,12 +283,13 @@ def blender_add_planar_decimate_modifier(object: bpy.types.Object, angle_limit_d
     if(apply):
         bpy.ops.object.modifier_apply(modifier="Planar Decimator")
 
-def blender_add_weld_modifier(object: bpy.types.Object, merge_threshold: float, vertex_group: str = "Face", apply: bool = False) -> None:
+def blender_add_weld_modifier(object: bpy.types.Object, merge_threshold: float, vertex_group: str = "Face", invert_vertex_group: bool = False, apply: bool = False) -> None:
     weldModifier = object.modifiers.new(name="Weld", type='WELD')
     weldModifier.mode = 'CONNECTED'
     weldModifier.merge_threshold = merge_threshold
     weldModifier.vertex_group = vertex_group
-    
+    weldModifier.invert_vertex_group = invert_vertex_group
+
     if(apply):
         bpy.ops.object.modifier_apply(modifier="Decimator")
 
@@ -318,7 +319,7 @@ def blender_generate_stl(filepath: str, vertices: np.ndarray, faces: np.ndarray,
     blender_select_object(object)
     blender_create_vertex_groups(object, vertices)
     blender_add_decimate_modifier(object, approximation_decimate_ratio(vertices), apply=False)
-    blender_add_weld_modifier(object, approximation_weld_threshold(vertices), vertex_group="Face", apply=False)
+    blender_add_weld_modifier(object, approximation_weld_threshold(vertices), vertex_group="Sides", invert_vertex_group=True, apply=False)
     blender_add_planar_decimate_modifier(object, angle_limit_deg=5, apply=False)
     blender_add_triangulate_modifier(object, apply=False)
     blender_export(filepath, stl=stl, blend=blend)
