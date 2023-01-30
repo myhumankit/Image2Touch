@@ -88,7 +88,7 @@ def generate_vertices_border(grayscale_image: np.ndarray, pts_par_px: int = 1) -
     nb_pts_x = grayscale_image.shape[0]*pts_par_px
     nb_pts_y = grayscale_image.shape[1]*pts_par_px
     vertices_border = np.array([(x, y, -1) for y in range(nb_pts_y) for x in range(nb_pts_x) if x == 0 or y == 0 or x == nb_pts_x-1 or y == nb_pts_y-1])
-    vertices_border = vertices_border / (nb_pts_x-1, nb_pts_y-1, 10)
+    vertices_border = vertices_border / (nb_pts_x-1, nb_pts_y-1, 2)
     return vertices_border
 
 def generate_vertices_bottom() -> np.ndarray:
@@ -305,7 +305,15 @@ def approximation_weld_threshold(vertices: np.ndarray, merge_radius: double = 3)
     # The distance between two neighbour vertices of the same plane is equal to the first vertex's x coordinate
     # We multiply this value by 1.5 (> sqrt(2)) to allow merging of diagonal vertices
     # We then multiply by merge_radius in order to merge vertices that are n spaces away
-    return 1.5*merge_radius*vertices[1][0]
+    step_size = vertices[1][0]
+    desired_threshold = 1.5*merge_radius*step_size
+    # As a safegard, we don't allow the thresold to be greater than the z distance between two nearby points
+    # A greater threshold might merge together different planes
+    sorted_z = sorted(set([z for _,_,z in vertices]))
+    min_diff_z = min([sorted_z[i + 1] - sorted_z[i] for i in range(len(sorted_z)-1)])
+    maximum_threshold = .99*math.sqrt(pow(min_diff_z,2)+pow(step_size,2))
+    
+    return min([desired_threshold, maximum_threshold])
 
 def blender_export(filepath: str, stl: bool = True, blend: bool = False) -> None:
     if stl:
