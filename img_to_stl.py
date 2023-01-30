@@ -16,6 +16,7 @@ class ImgToStl:
     flatImagePath: str = None
     
     colors: List[str] = field(default_factory=list) 
+    colors_definitions: List[ColorDefinition] = field(default_factory=list) 
     pixel_list_labels: List[int] = field(default_factory=list) 
     relevant_label_to_color_hexes: dict = field(default_factory=dict) 
     
@@ -26,7 +27,8 @@ class ImgToStl:
     dimensionXselect: int = 100
     dimensionYselect: int = 100
     dimensionZselect: int = 2 
-    thicknessSelect: int = 2
+    desiredThickness: int = 2
+    
     smoothingNbRepeats = 1
     smoothingFactor = .1
     smoothingBorder = 1
@@ -65,15 +67,16 @@ class ImgToStl:
         
         if (not self.saveBlendFile and not self.saveSTL):
             print('Please, choose at least one file type to save')
-            return
+            return False
         
         try:
             progress.update_progress(0, "Generating height map")
-            colors = [ColorDefinition(color, ColorType.FLAT_SURFACE, i) for i, color in enumerate(self.colors)]
-            grayscaleImagePath = generateGreyScaleImage(self.imagePath, colors, self.pixel_list_labels, self.relevant_label_to_color_hexes)
+            if self.colors_definitions is None or len(self.colors_definitions) == 0:
+                self.colors_definitions = [ColorDefinition(color, ColorType.FLAT_SURFACE, i) for i, color in enumerate(self.colors)]
+            grayscaleImagePath = generateGreyScaleImage(self.imagePath, self.colors_definitions, self.pixel_list_labels, self.relevant_label_to_color_hexes)
             
             desiredSize = (self.dimensionXselect, self.dimensionYselect, self.dimensionZselect)
-            meshMandatoryParams = MeshMandatoryParameters(self.imagePath, desiredSize=desiredSize, desiredThickness=self.thicknessSelect, saveBlendFile=self.saveBlendFile, saveSTL=self.saveSTL)
+            meshMandatoryParams = MeshMandatoryParameters(self.imagePath, desiredSize=desiredSize, desiredThickness=self.desiredThickness, saveBlendFile=self.saveBlendFile, saveSTL=self.saveSTL)
             operatorsOpionalParameters = OperatorsOpionalParameters(smoothingNbRepeats = self.smoothingNbRepeats, smoothingFactor = self.smoothingFactor, smoothingBorder = self.smoothingBorder, decimateAngleLimit = self.decimateAngleLimit)
             
             progress.update_progress(50, "Generating STL file")
@@ -84,7 +87,9 @@ class ImgToStl:
             
             message = 'STL generation successful ! Elapsed time : %.2f s' % (endGenerationTime - startTime)
             progress.update_progress(100, message)
+            return True
             
         # TODO Better exception handling with specific exceptions
         except Exception as ex:
             progress.fatal_error(message=f'STL generation unsuccessful : {str(ex)}', exception=ex)
+            return False

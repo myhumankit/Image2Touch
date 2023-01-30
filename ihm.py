@@ -5,25 +5,25 @@ import threading
 from color_detection import findColorsAndMakeNewImage
 from generate_greyscale_image import generateGreyScaleImage
 from color_types import ColorType, ColorDefinition
+from progress import Progress
 from stl_generation import MeshMandatoryParameters, OperatorsOpionalParameters, generateSTL
 import os
 import time
+from img_to_stl import ImgToStl
 
 class MainWindow(wx.Frame):
     """The main window of the application"""
     def __init__(self, parent, title):
         super(MainWindow, self).__init__(parent, title=title)
         
-        self.colors = []
-        self.colorTypeCB = {}
-        self.colorParamSelect = {}
-        self.pixel_list_labels = []
-        self.relevant_label_to_color_hexes = {}
-        self.img_width = 0
-        self.img_height = 0
+        self.image_width = 0
+        self.image_height = 0
         self.max_height = 1000
         self.max_width = 1000
         self.minimum_step_btw_highest_lowest_points = 1.0 # The minimum step of height between the highest point of the object and the lowest point of the top surface.
+
+        self.img_to_stl = ImgToStl()
+        self.progress = Progress(max=100, callback=MainWindow.callUpdateProgress, error_callback=self.callErrorMessageBox)
 
         self.initUI()
         self.Centre()
@@ -164,11 +164,14 @@ class MainWindow(wx.Frame):
         
     def updateProgress(self, value, message=""):
         """Updates the status of the progress bar"""
-        if value >= 100:
+        if value >= 100 and message == "":
             message = "Done"
         if message != "":
             self.gaugeText.SetLabel(message)
         self.gauge.SetValue(int(value))
+        
+    def callErrorMessageBox(self, message: str):
+        wx.CallAfter(wx.LogError, message)
         
     def onOpen(self, event):
         """Behaviour for the '...' button. An image file can be selected for processing"""
@@ -183,10 +186,9 @@ class MainWindow(wx.Frame):
             try:
                 # We try to open the file to check if it is accessible
                 with open(pathname, 'r') as file:
-                    self.imagePath = pathname
+                    # self.imagePath = pathname
                     # The intensive stuff is done in a thread
-                    t=threading.Thread(target=self.onImageLoad)
-                    t.start()
+                    threading.Thread(target=self.onImageLoad, args=[pathname]).start()
             except IOError:
                 wx.LogError(f"Cannot open file '{pathname}'.")
         
@@ -206,20 +208,22 @@ class MainWindow(wx.Frame):
         # Update the image preview
         imageCtrl.SetBitmap(wx.BitmapFromImage(img))
     
-    def onImageLoad(self):
+    def onImageLoad(self, imagePath: str):
         """Behaviour for loading an image to be processed (executed in a thread)"""
         # Prevents the user from interacting with the software
         wx.CallAfter(self.disableButtons)
         
         # Update the text containing the path
-        wx.CallAfter(self.imagePathText.SetLabel, os.path.basename(self.imagePath))
+        wx.CallAfter(self.imagePathText.SetLabel, os.path.basename(imagePath))
+        
         # MAJ UI
         wx.CallAfter(self.refresh)
         
         # Find the colors in the image
-        self.colors, self.flatImagePath, self.pixel_list_labels, self.relevant_label_to_color_hexes = findColorsAndMakeNewImage(self.imagePath, MainWindow.callUpdateProgress)
+        self.img_to_stl.loadImageSync(imagePath, self.progress)
+        
         # Flattened image preview
-        wx.CallAfter(self.setImage, self.imageCtrl, self.flatImagePath)
+        wx.CallAfter(self.setImage, self.imageCtrl, self.img_to_stl.flatImagePath)
         
         # MAJ UI
         wx.CallAfter(self.refresh)
@@ -270,7 +274,7 @@ class MainWindow(wx.Frame):
         self.refresh()
         # Adds new content
         content = [(wx.StaticText(self.panel, label=x, style=wx.ALIGN_CENTRE_HORIZONTAL)) for x in [" ","Color","Type","Parameter"]] # Headers
-        content = content + [y for color in self.colors for y in [
+        content = content + [y for color in self.img_to_stl.colors for y in [
             self.makeColorSquare(color=color),
             wx.StaticText(self.panel, label=color),
             self.makeCB(color),
@@ -328,13 +332,28 @@ class MainWindow(wx.Frame):
     def onGenerate(self, event):
         """Behaviour of the 'generate' button"""
         # The intensive stuff is done in a thread
-        t=threading.Thread(target=self.generate)
-        t.start()
+        threading.Thread(target=self.generate).start()
                     
     def generate(self):
         """Generates the STL file. Runs in a thread."""
         saveBlendFile=self.checkboxSaveBlendFile.GetValue()
         saveSTL=self.checkboxSaveSTLFile.GetValue()
+        
+        self.img_to_stl.saveBlendFile = self.checkboxSaveBlendFile.GetValue()
+        self.img_to_stl.saveSTL = self.checkboxSaveSTLFile.GetValue()
+        
+        self.img_to_stl.colors_definitions = [ColorDefinition(color, self.getColorType(color), self.getParameter(color)) for color in self.img_to_stl.colors]
+        
+        self.img_to_stl.dimensionXselect = self.dimensionXselect.GetValue()
+        self.img_to_stl.dimensionYselect = self.dimensionYselect.GetValue()
+        self.img_to_stl.dimensionZselect = self.dimensionZselect.GetValue()
+        self.img_to_stl.desiredThickness = self.thicknessSelect.GetValue()
+        self.img_to_stl.preserveAspectRatio = False
+        
+        self.img_to_stl.smoothingNbRepeats = self.smoothingNbRepeatsselect.GetValue()
+        self.img_to_stl.smoothingFactor = self.smoothingFactorselect.GetValue()
+        self.img_to_stl.smoothingBorder = self.smoothingBorderselect.GetValue()
+        self.img_to_stl.decimateAngleLimit = self.decimateselect.GetValue()
 
         if (not saveBlendFile and not saveSTL):
             wx.CallAfter(wx.MessageBox, 'Please, choose at least one file type to save', 'Warning', wx.OK | wx.ICON_WARNING)
@@ -342,28 +361,11 @@ class MainWindow(wx.Frame):
             # Prevents the user from interacting with the software
             wx.CallAfter(self.disableButtons)            
 
-            try:
-                MainWindow.callUpdateProgress(0, "Generating height map")
-                colors = [ColorDefinition(color, self.getColorType(color), self.getParameter(color)) for color in self.colors]
-                grayscaleImagePath = generateGreyScaleImage(self.imagePath, colors, self.pixel_list_labels, self.relevant_label_to_color_hexes)
-                desiredSize = (self.dimensionXselect.GetValue(), self.dimensionYselect.GetValue(),self.dimensionZselect.GetValue())
-                desiredThickness = self.thicknessSelect.GetValue()
-                saveBlendFile=self.checkboxSaveBlendFile.GetValue()
-                saveSTL=self.checkboxSaveSTLFile.GetValue()            
-                meshMandatoryParams = MeshMandatoryParameters(self.imagePath, desiredSize=desiredSize, desiredThickness=desiredThickness, saveBlendFile=saveBlendFile, saveSTL=saveSTL)
-                operatorsOpionalParameters = OperatorsOpionalParameters(smoothingNbRepeats = self.smoothingNbRepeatsselect.GetValue(), smoothingFactor = self.smoothingFactorselect.GetValue(), smoothingBorder = self.smoothingBorderselect.GetValue(), decimateAngleLimit = self.decimateselect.GetValue())
-                MainWindow.callUpdateProgress(50, "Generating STL file")
-                startTime = time.time()
-                stlUpdateProgress = lambda value, text : MainWindow.callUpdateProgress(50+value/2, text)
-                generateSTL(grayscaleImagePath, meshMandatoryParameters = meshMandatoryParams,operatorsOpionalParameters = operatorsOpionalParameters, fnUpdateProgress = stlUpdateProgress)
-                endGenerationTime = time.time()
-                MainWindow.callUpdateProgress(100)
-                message = 'STL generation successful ! Elapsed time : %.2f s' % (endGenerationTime - startTime)
+            if self.img_to_stl.generateMeshSync(progress=self.progress):
+                message = 'STL generation successful !'
                 wx.CallAfter(wx.MessageBox, message, 'Info', wx.OK)
-            # TODO Better exception handling with specific exceptions
-            except Exception as ex:
-                MainWindow.callUpdateProgress(0, "Unsuccessful")
-                wx.CallAfter(wx.MessageBox, 'STL generation unsuccessful : '+str(ex), 'Error', wx.OK | wx.ICON_ERROR)
-            finally:
-                # Allow the user further interaction with the software
-                wx.CallAfter(self.enableButtons)
+            else:
+                wx.CallAfter(wx.MessageBox, 'STL generation unsuccessful', 'Error', wx.OK | wx.ICON_ERROR)
+            
+            # Allow the user further interaction with the software
+            wx.CallAfter(self.enableButtons)
