@@ -6,6 +6,7 @@ import cv2
 import math
 import bpy
 import bmesh
+from progress import Progress
 
 #region ############################## Parameters ##############################
 
@@ -321,22 +322,34 @@ def blender_export(filepath: str, stl: bool = True, blend: bool = False) -> None
     if blend:
         bpy.ops.wm.save_as_mainfile(filepath=f"{filepath}.blend")
 
-def blender_generate_stl(filepath: str, vertices: np.ndarray, faces: np.ndarray, stl: bool = True, blend: bool = False):
+def blender_generate_stl(filepath: str, vertices: np.ndarray, faces: np.ndarray, progress: Progress, stl: bool = True, blend: bool = False):
     blender_new_empty_scene()
+    
+    progress.update_progress(0, "Creation of the blender object")
     object = blender_new_object(vertices, faces)
     blender_select_object(object)
     blender_create_vertex_groups(object, vertices)
+    
+    progress.update_progress(5, "Adding the decimate modifier")
     blender_add_decimate_modifier(object, approximation_decimate_ratio(vertices), apply=False)
+    
+    progress.update_progress(24, "Adding the weld modifier")
     blender_add_weld_modifier(object, approximation_weld_threshold(vertices), vertex_group="Sides", invert_vertex_group=True, apply=False)
+    
+    progress.update_progress(43, "Adding the planar decimate modifier")
     blender_add_planar_decimate_modifier(object, angle_limit_deg=5, apply=False)
+    
+    progress.update_progress(62, "Adding the triangulate modifier")
     blender_add_triangulate_modifier(object, apply=False)
+    
+    progress.update_progress(81, "Exporting")
     blender_export(filepath, stl=stl, blend=blend)
 
 #endregion
 
 #region ############################## Main method ##############################
 
-def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters, operatorsOpionalParameters: OperatorsOpionalParameters, fnUpdateProgress):
+def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters, operatorsOpionalParameters: OperatorsOpionalParameters, progress: Progress):
 	"""
 	Generate the mesh under the stl format.
 
@@ -353,10 +366,12 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	desired_thickness_top = meshMandatoryParameters.desiredThickness
 	desired_thickness_bottom = meshMandatoryParameters.desiredSize[2]
  
-	fnUpdateProgress(0, "Generation of the base mesh")
+	progress.update_progress(0, "Generation of the base mesh")
 	vertices, faces = generate_mesh(imagePath, desired_width, desired_height, desired_thickness_top, desired_thickness_bottom)
-	fnUpdateProgress(50, "Applying modifiers and exporting")
-	blender_generate_stl(meshMandatoryParameters.outputMeshPath, vertices, faces, stl=meshMandatoryParameters.saveSTL, blend=meshMandatoryParameters.saveBlendFile)
-	fnUpdateProgress(1000, "Done")
+ 
+	progress.update_progress(50, "Applying modifiers and exporting")
+	blender_generate_stl(meshMandatoryParameters.outputMeshPath, vertices, faces, stl=meshMandatoryParameters.saveSTL, blend=meshMandatoryParameters.saveBlendFile, progress=progress.make_child(50,100))
+ 
+	progress.update_progress(100, "Done")
 
 #endregion

@@ -81,8 +81,7 @@ class ImgToStl:
             
             progress.update_progress(50, "Generating STL file")
             startTime = time.time()
-            stlUpdateProgress = progress.make_child(50,100)
-            generateSTL(grayscaleImagePath, meshMandatoryParameters = meshMandatoryParams,operatorsOpionalParameters = operatorsOpionalParameters, fnUpdateProgress = stlUpdateProgress.update_progress)
+            generateSTL(grayscaleImagePath, meshMandatoryParameters = meshMandatoryParams,operatorsOpionalParameters = operatorsOpionalParameters, progress = progress.make_child(50,100))
             endGenerationTime = time.time()
             
             message = 'STL generation successful ! Elapsed time : %.2f s' % (endGenerationTime - startTime)

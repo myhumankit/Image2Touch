@@ -24,7 +24,7 @@ class ConsoleProgress(Progress):
     def write_progress(self, value, message=""):
         nb_full = int(value*self.progress_bar_width/self.max)
         nb_empty = self.progress_bar_width - nb_full
-        print(f"[{'#'*nb_full}{' '*nb_empty}] {int(value)} % {message}", end='\r', flush=True)
+        print(f"[{'#'*nb_full}{' '*nb_empty}] {str(int(value)).rjust(3)} % {message.ljust(100)}", end='\r', flush=True)
         
     def write_error(self, message=""):
         print(f"{('/!'+chr(92))*5} ERROR {('/!'+chr(92))*5}")
