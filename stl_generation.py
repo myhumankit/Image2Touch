@@ -330,19 +330,19 @@ def blender_generate_stl(filepath: str, vertices: np.ndarray, faces: np.ndarray,
     blender_select_object(object)
     blender_create_vertex_groups(object, vertices)
     
-    progress.update_progress(5, "Adding the decimate modifier")
+    progress.update_progress(10, "Adding the decimate modifier")
     blender_add_decimate_modifier(object, approximation_decimate_ratio(vertices), apply=False)
     
-    progress.update_progress(24, "Adding the weld modifier")
+    progress.update_progress(20, "Adding the weld modifier")
     blender_add_weld_modifier(object, approximation_weld_threshold(vertices), vertex_group="Sides", invert_vertex_group=True, apply=False)
     
-    progress.update_progress(43, "Adding the planar decimate modifier")
+    progress.update_progress(30, "Adding the planar decimate modifier")
     blender_add_planar_decimate_modifier(object, angle_limit_deg=5, apply=False)
     
-    progress.update_progress(62, "Adding the triangulate modifier")
+    progress.update_progress(40, "Adding the triangulate modifier")
     blender_add_triangulate_modifier(object, apply=False)
     
-    progress.update_progress(81, "Exporting")
+    progress.update_progress(50, "Exporting")
     blender_export(filepath, stl=stl, blend=blend)
 
 #endregion
