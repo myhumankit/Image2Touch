@@ -20,8 +20,13 @@ class ConsoleProgress(Progress):
     def __init__(self, max=1, progress_bar_width=20):
         super().__init__(callback=self.write_progress, error_callback=self.write_error, max=max)
         self.progress_bar_width = progress_bar_width
+        self.last_message = ""
         
     def write_progress(self, value, message=""):
+        if len(message) == 0:
+            message = self.last_message
+        self.last_message = message
+        
         nb_full = int(value*self.progress_bar_width/self.max)
         nb_empty = self.progress_bar_width - nb_full
         print(f"[{'#'*nb_full}{' '*nb_empty}] {str(int(value)).rjust(3)} % {message.ljust(100)}", end='\r', flush=True)
