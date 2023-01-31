@@ -1,11 +1,13 @@
-from typing import List, Tuple
-import os
+from contextlib import redirect_stdout
+import sys
+from typing import Tuple
+import sys, os
 import numpy as np
 from numpy import double
 import cv2
 import math
 import bpy
-import bmesh
+from contextlib import contextmanager
 from progress import Progress
 
 #region ############################## Parameters ##############################
@@ -224,12 +226,12 @@ def generate_mesh(image_path: str, desired_width: float, desired_height: float, 
 #region ############################## Blender ##############################
 
 def blender_new_empty_scene() -> None:
-	scene = bpy.context.scene
-	for obj in scene.objects:
-		bpy.data.objects.remove(obj)
+    scene = bpy.context.scene
+    for obj in scene.objects:
+        bpy.data.objects.remove(obj)
 
-	for tex in bpy.data.textures:
-		bpy.data.textures.remove(tex, do_unlink=True)
+    for tex in bpy.data.textures:
+        bpy.data.textures.remove(tex, do_unlink=True)
 
 
 def blender_new_object(vertices: np.ndarray, faces: np.ndarray, object_name: str = "object", mesh_name: str = "mesh") -> bpy.types.Object:
@@ -316,16 +318,17 @@ def approximation_weld_threshold(vertices: np.ndarray, merge_radius: double = 3)
     
     return min([desired_threshold, maximum_threshold])
 
+
 def blender_export(filepath: str, stl: bool = True, blend: bool = False) -> None:
-    if stl:
-        bpy.ops.export_mesh.stl(filepath=f"{filepath}.stl", use_mesh_modifiers=True)
-    if blend:
-        bpy.ops.wm.save_as_mainfile(filepath=f"{filepath}.blend")
+    with suppress_stdout():
+        if stl:
+            bpy.ops.export_mesh.stl(filepath=f"{filepath}.stl", use_mesh_modifiers=True)
+        if blend:
+            bpy.ops.wm.save_as_mainfile(filepath=f"{filepath}.blend")
 
 def blender_generate_stl(filepath: str, vertices: np.ndarray, faces: np.ndarray, progress: Progress, stl: bool = True, blend: bool = False):
-    blender_new_empty_scene()
-    
     progress.update_progress(0, "Creation of the blender object")
+    blender_new_empty_scene()
     object = blender_new_object(vertices, faces)
     blender_select_object(object)
     blender_create_vertex_groups(object, vertices)
@@ -344,6 +347,35 @@ def blender_generate_stl(filepath: str, vertices: np.ndarray, faces: np.ndarray,
     
     progress.update_progress(50, "Exporting")
     blender_export(filepath, stl=stl, blend=blend)
+
+#endregion
+
+#region ############################## Output ##############################
+
+@contextmanager
+def suppress_stdout():
+    """Suppresses stdout output for python and C code"""
+    # /dev/null is used just to discard what is being printed
+    with open(os.devnull, "w") as devnull:
+        sys.stdout.flush() # <--- important when redirecting to files
+
+        # Duplicate stdout (file descriptor 1) to a different file descriptor number
+        newstdout = os.dup(1)
+
+        # Duplicate the file descriptor for /dev/null and overwrite the value for stdout (file descriptor 1)
+        os.dup2(devnull.fileno(), 1)
+
+        # Use the original stdout to still be able to print to stdout within python
+        sys.stdout = os.fdopen(newstdout, 'w')
+    
+        # This next line is the only one needed for python output
+        with redirect_stdout(devnull):
+            try:
+                # The code inside the "with" block will be called here
+                yield
+            finally:
+                # Restore the original stdout at the end
+                os.dup2(newstdout, 1)
 
 #endregion
 
