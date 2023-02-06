@@ -45,14 +45,9 @@ class MainWindow(wx.Frame):
         sizer.Add(self.buttonOpen, pos=(0, 1))
         
         self.colorSizer = wx.FlexGridSizer(cols=4, vgap=2, hgap=5)
-        sizer.Add(self.colorSizer, pos=(1, 0), span=(1,2), flag=wx.EXPAND)
+        sizer.Add(self.add_title(widget=self.colorSizer, panel=panel, label="Colors"), pos=(1, 0), span=(1,2), flag=wx.EXPAND)
         
-        self.dimensionSizer = wx.GridBagSizer(3,4)
-        dimensionMainHeader = wx.StaticText(panel, label="Dimensions (mm) :")
-        dimensionXHeader = wx.StaticText(panel, label="Width ")
-        dimensionYHeader = wx.StaticText(panel, label="Height ")
-        dimensionZHeader = wx.StaticText(panel, label="Base Thickness ")
-        thicknessHeader = wx.StaticText(panel, label="Shape Thickness ")
+        dimensionSizer = wx.GridBagSizer(1,4)
         self.dimensionXselect = wx.SpinCtrl(self.panel, min=10, max=self.max_width, initial=100)
         self.dimensionYselect = wx.SpinCtrl(self.panel, min=10, max=self.max_height, initial=100)
         self.dimensionZselect = wx.SpinCtrl(self.panel, min=1, max=100, initial=10)
@@ -62,55 +57,21 @@ class MainWindow(wx.Frame):
         self.thicknessSelect.Bind(wx.EVT_SPINCTRL,self.onThicknessChanged)
         self.thicknessSelect.SetFormat("%f")
         self.thicknessSelect.SetDigits(1)
-        self.dimensionSizer.Add(dimensionMainHeader, pos=(0, 0), span=(1,4))
-        self.dimensionSizer.Add(dimensionXHeader, pos=(1, 0))
-        self.dimensionSizer.Add(dimensionYHeader, pos=(1, 1))
-        self.dimensionSizer.Add(dimensionZHeader, pos=(1, 2))
-        self.dimensionSizer.Add(thicknessHeader, pos=(1, 3))
-        self.dimensionSizer.Add(self.dimensionXselect, pos=(2, 0))
-        self.dimensionSizer.Add(self.dimensionYselect, pos=(2, 1))
-        self.dimensionSizer.Add(self.dimensionZselect, pos=(2, 2))
-        self.dimensionSizer.Add(self.thicknessSelect, pos=(2, 3))
-        sizer.Add(self.dimensionSizer, pos=(2, 0), span=(1,2))
-
-        self.smootherParams = wx.GridBagSizer(3,3)
-        smoothingMainHeader = wx.StaticText(panel, label="Smoothing parameters :")
-        smoothingNbRepeatsHeader = wx.StaticText(panel, label="smoothingNbRepeats ")
-        smoothingFactorHeader = wx.StaticText(panel, label="smoothingFactor ")
-        smoothingBorderHeader = wx.StaticText(panel, label="smoothingBorder ")
-        self.smoothingNbRepeatsselect = wx.SpinCtrl(self.panel, min=1, initial=5)
-        self.smoothingFactorselect = floatspin.FloatSpin(self.panel, min_val=0., increment=0.01,  value=1.)
-        self.smoothingFactorselect.SetFormat("%f")
-        self.smoothingFactorselect.SetDigits(2)
-        self.smoothingBorderselect = floatspin.FloatSpin(self.panel, min_val=0., increment=0.01, value=0.)
-        self.smoothingBorderselect.SetFormat("%f")
-        self.smoothingBorderselect.SetDigits(2)
-        self.smootherParams.Add(smoothingMainHeader, pos=(0, 0), span=(1,3))
-        self.smootherParams.Add(smoothingNbRepeatsHeader, pos=(1, 0))
-        self.smootherParams.Add(smoothingFactorHeader, pos=(1, 1))
-        self.smootherParams.Add(smoothingBorderHeader, pos=(1, 2))
-        self.smootherParams.Add(self.smoothingNbRepeatsselect, pos=(2, 0))
-        self.smootherParams.Add(self.smoothingFactorselect, pos=(2, 1))
-        self.smootherParams.Add(self.smoothingBorderselect, pos=(2, 2))
-        sizer.Add(self.smootherParams, pos=(3, 0), span=(1,2))
-
-        # self.decimateAngleLimit = floatspin.FloatSpin(self.panel, min_val=0.0, max_val=100, increment=0.1, value=0.5)
-        self.decimateParams = wx.GridBagSizer(1,2)
-        decimateHeader = wx.StaticText(panel, label="Angle limit :")
-        self.decimateselect = floatspin.FloatSpin(self.panel, min_val=0.01, increment=0.01, value=0.1)
-        self.decimateselect.SetFormat("%f")
-        self.decimateselect.SetDigits(2)
-        self.decimateParams.Add(decimateHeader, pos=(0, 0))
-        self.decimateParams.Add(self.decimateselect, pos=(0, 1))
-        sizer.Add(self.decimateParams, pos=(4, 0), span=(1,2))
+        dimensionSizer.Add(self.add_label(widget=self.dimensionXselect, panel=panel, label="Width"), pos=(0, 0))
+        dimensionSizer.Add(self.add_label(widget=self.dimensionYselect, panel=panel, label="Height"), pos=(0, 1))
+        dimensionSizer.Add(self.add_label(widget=self.dimensionZselect, panel=panel, label="Base Thickness"), pos=(0, 2))
+        dimensionSizer.Add(self.add_label(widget=self.thicknessSelect, panel=panel, label="Shape Thickness"), pos=(0, 3))
+        sizer.Add(self.add_title(widget=dimensionSizer, panel=panel, label="Dimensions (mm)"), pos=(2, 0), span=(1,2))
 
         
+        exportSizer = wx.GridBagSizer(1,2)
         self.checkboxSaveSTLFile = wx.CheckBox(panel, label='Save STL file')
         self.checkboxSaveSTLFile.SetValue(True)
-        sizer.Add(self.checkboxSaveSTLFile, pos=(5, 0))
+        exportSizer.Add(self.checkboxSaveSTLFile, pos=(0, 0))
         
         self.checkboxSaveBlendFile = wx.CheckBox(panel, label='Save Blend file')  
-        sizer.Add(self.checkboxSaveBlendFile, pos=(5, 1))
+        exportSizer.Add(self.checkboxSaveBlendFile, pos=(0, 1))
+        sizer.Add(self.add_title(widget=exportSizer, panel=panel, label="Export options"), pos=(3, 0), span=(1,2))
 
         self.buttonGenerate = wx.Button(panel, label="&Generate", size=(90, 28))
         self.buttonGenerate.Bind(wx.EVT_BUTTON,self.onGenerate)
@@ -118,10 +79,10 @@ class MainWindow(wx.Frame):
         self.buttonGenerate.Disable() # This button is disabled at first and enabled when an image loads
         
         self.gaugeText = wx.StaticText(panel, label="Idle")
-        sizer.Add(self.gaugeText, pos=(7, 0))
+        sizer.Add(self.gaugeText, pos=(4, 0))
         
         self.gauge = wx.Gauge(panel, range=100)
-        sizer.Add(self.gauge, pos=(8,0), span=(1,2), flag=wx.EXPAND)
+        sizer.Add(self.gauge, pos=(5,0), span=(1,2), flag=wx.EXPAND)
         
         self.PhotoMaxSize = 100
         self.imageCtrl = wx.StaticBitmap(self.panel, wx.ID_ANY, 
@@ -137,6 +98,15 @@ class MainWindow(wx.Frame):
         # Respond to the update event
         pub.subscribe(self.updateProgress, "update")
         
+    def add_label(self, panel, label, widget):
+        box = wx.StaticBoxSizer(wx.VERTICAL, panel, label)
+        box.Add(widget)
+        return box
+    
+    def add_title(self, panel, label, widget):
+        box = wx.StaticBoxSizer(wx.VERTICAL, panel, label)
+        box.Add(widget)
+        return box
         
     def disableButtons(self):
         """Disables all buttons to prevent interaction during other work"""
