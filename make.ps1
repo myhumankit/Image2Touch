@@ -4,7 +4,7 @@ if(-not (Test-Path .env)) {
 }
 
 # Read python env directory
-$pythonfolder = (Get-Content .env) |? { $_ -match 'PYTHONPATH="?(.*)python.exe' } |% { $Matches[1] }
+$pythonfolder = (Get-Content .env) |? { $_ -match '^PYTHONPATH="?(.*)python.exe' } |% { $Matches[1] }
 $benderScriptFolder = (Get-ChildItem $pythonfolder) |? { $_.Name -match "^\d+\.\d+$" } |% { $_.FullName }
 
 # Error handling
