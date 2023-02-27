@@ -1,7 +1,6 @@
 import math
 import numpy as np
 import cv2
-import os
 from tempfile import mkstemp
 from color_types import ColorDefinition
 from typing import List
@@ -25,8 +24,8 @@ def generateGreyScaleImage(imagePath, colors: List[ColorDefinition], pixelListLa
     upperLimit = -100000
     lowerLimit = 1000000
     for c in colors:
-        upperLimit = max(upperLimit, c.parameter)
-        lowerLimit = min(lowerLimit, c.parameter)
+        upperLimit = max(upperLimit, c.colorHeight)
+        lowerLimit = min(lowerLimit, c.colorHeight)
     step = 255/(upperLimit - lowerLimit)
 
     # ## Part 2 : modifying the image
@@ -37,7 +36,7 @@ def generateGreyScaleImage(imagePath, colors: List[ColorDefinition], pixelListLa
 
     # # Change the RGB values to grayscale values
     for i in range(min(len(pixel_list), len(pixelListLabels))):
-        greyScaleValue = math.floor(colors[labelsToColorIndices[pixelListLabels[i]]].parameter * step)
+        greyScaleValue = math.floor(colors[labelsToColorIndices[pixelListLabels[i]]].colorHeight * step)
         pixel_list[i] = (greyScaleValue, greyScaleValue, greyScaleValue)
     
     # # Save the resulting image

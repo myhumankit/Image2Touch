@@ -1,15 +1,37 @@
 import wx
-import wx.lib.agw.floatspin as floatspin
+from wx.lib.expando import ExpandoTextCtrl
 from pubsub import pub
 import threading
-from color_detection import findColorsAndMakeNewImage
-from generate_greyscale_image import generateGreyScaleImage
-from color_types import ColorType, ColorDefinition
+from color_types import ColorDefinition
 from progress import Progress
-from stl_generation import MeshMandatoryParameters, OperatorsOpionalParameters, generateSTL
 import os
-import time
 from img_to_stl import ImgToStl
+
+class LabeledControlHelper(object):
+    """ Represents a Labeled Control. Provides a class to create and hold on to the objects and automatically associate
+    the two controls together.
+    Relies on guiHelper.associateElements(), any limitations in guiHelper.associateElements() also apply here.
+    """
+    def __init__(self, parent: wx.Window, labelText: str, wxCtrlClass: wx.Control, orientation=wx.HORIZONTAL, noLabel:bool=False, **kwargs):
+        """ @param parent: An instance of the parent wx window. EG wx.Dialog
+            @param labelText: The text to associate with a wx control.
+            @param wxCtrlClass: The class to associate with the label, eg: wx.TextCtrl
+            @param kwargs: The keyword arguments used to instantiate the wxCtrlClass
+        """
+        object.__init__(self)
+        if noLabel:
+            self.label = wx.StaticText(parent, label=labelText, size=(0,0))
+        else:
+            self.label = wx.StaticText(parent, label=labelText)
+        self.control = wxCtrlClass(parent, **kwargs)
+        self.sizer = wx.BoxSizer(orientation)
+        self.sizer.Add(self.label, flag=(wx.ALIGN_CENTER_VERTICAL if orientation==wx.HORIZONTAL else wx.ALIGN_CENTER_HORIZONTAL))
+        self.sizer.AddSpacer(10 if orientation==wx.HORIZONTAL else 3)
+        self.sizer.Add(self.control)
+
+    def make(parent: wx.Window, labelText: str, wxCtrlClass: wx.Control, orientation=wx.HORIZONTAL, noLabel:bool=False, **kwargs):
+        lch = LabeledControlHelper(parent, labelText, wxCtrlClass, orientation, noLabel, **kwargs)
+        return  lch.control, lch.sizer
 
 class MainWindow(wx.Frame):
     """The main window of the application"""
@@ -20,6 +42,7 @@ class MainWindow(wx.Frame):
         self.image_height = 0
         self.max_height = 1000
         self.max_width = 1000
+        self.max_depth = 50
         self.minimum_step_btw_highest_lowest_points = 1.0 # The minimum step of height between the highest point of the object and the lowest point of the top surface.
 
         self.img_to_stl = ImgToStl()
@@ -32,82 +55,95 @@ class MainWindow(wx.Frame):
     def initUI(self):
         """Builds and displays all the UI elements of the window"""
         panel = wx.Panel(self)
-        sizer = wx.GridBagSizer(3, 6)
+        sizer = wx.GridBagSizer(2, 6)
+        
+        sizer.AddGrowableRow(1)
+        sizer.AddGrowableCol(0)
 
         self.panel = panel
         self.sizer = sizer
         
-        self.imagePathText = wx.StaticText(panel, label="No file selected")
-        sizer.Add(self.imagePathText, pos=(0, 0))
+        panel.SetSizer(sizer)
         
-        self.buttonOpen = wx.Button(panel, label="Select a &file...", size=(90, 28))
+        #################### Input file ####################
+        
+        fileChoixeSizer = wx.StaticBoxSizer(wx.HORIZONTAL, panel, "Input file")
+        # ExpandoTextCtrl is a variant of wx.StaticText that stays focusable even in readonly mode
+        self.imagePathText = ExpandoTextCtrl(panel, value="No file selected", style= wx.TE_READONLY, size=(-1, 26))
+        fileChoixeSizer.Add(self.imagePathText, proportion=1, flag=wx.ALIGN_CENTER_VERTICAL)
+        
+        self.buttonOpen = wx.Button(panel, label="Select a &file...", size=(-1, 28))
         self.buttonOpen.Bind(wx.EVT_BUTTON,self.onOpen)
-        sizer.Add(self.buttonOpen, pos=(0, 1))
+        fileChoixeSizer.Add(self.buttonOpen)
         
-        self.colorSizer = wx.FlexGridSizer(cols=4, vgap=2, hgap=5)
-        sizer.Add(self.add_title(widget=self.colorSizer, panel=panel, label="Colors"), pos=(1, 0), span=(1,2), flag=wx.EXPAND)
+        sizer.Add(fileChoixeSizer, pos=(0, 0), flag=wx.EXPAND)
         
-        dimensionSizer = wx.GridBagSizer(1,4)
-        self.dimensionXselect = wx.SpinCtrl(self.panel, min=10, max=self.max_width, initial=100)
-        self.dimensionYselect = wx.SpinCtrl(self.panel, min=10, max=self.max_height, initial=100)
-        self.dimensionZselect = wx.SpinCtrl(self.panel, min=1, max=100, initial=10)
+        #################### Colors ####################
+        
+        self.colorSizer = wx.FlexGridSizer(cols=3, vgap=2, hgap=5)
+        
+        colorGroupSizer = wx.StaticBoxSizer(wx.VERTICAL, panel, "Colors")
+        colorGroupSizer.Add(self.colorSizer)
+        sizer.Add(colorGroupSizer, pos=(1, 0), flag=wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        
+        #################### Dimensions (mm) ####################
+        
+        dimensionSizer = wx.StaticBoxSizer(wx.HORIZONTAL, panel, "Dimensions (mm)")
+        
+        self.dimensionXselect, dimXselSizer = LabeledControlHelper.make(self.panel, "Width", wx.SpinCtrl, orientation=wx.VERTICAL, min=10, max=self.max_width, initial=100)
+        self.dimensionYselect, dimYselSizer = LabeledControlHelper.make(self.panel, "Height", wx.SpinCtrl, orientation=wx.VERTICAL, min=10, max=self.max_height, initial=100)
+        self.dimensionZselect, dimZselSizer = LabeledControlHelper.make(self.panel, "Base Thickness", wx.SpinCtrl,  orientation=wx.VERTICAL, min=1, max=self.max_depth, initial=3)
         self.dimensionXselect.Bind(wx.EVT_SPINCTRL,self.onDimensionXChanged)
         self.dimensionYselect.Bind(wx.EVT_SPINCTRL,self.onDimensionYChanged)
-        self.thicknessSelect = floatspin.FloatSpin(self.panel, min_val=0.5, max_val=self.max_height, increment=0.1, value=2.)
+        self.thicknessSelect, thickSelSizer = LabeledControlHelper.make(self.panel, "Shape Thickness", wx.SpinCtrl, orientation=wx.VERTICAL, min=1, max=self.max_depth, initial=2)
         self.thicknessSelect.Bind(wx.EVT_SPINCTRL,self.onThicknessChanged)
-        self.thicknessSelect.SetFormat("%f")
-        self.thicknessSelect.SetDigits(1)
-        dimensionSizer.Add(self.add_label(widget=self.dimensionXselect, panel=panel, label="Width"), pos=(0, 0))
-        dimensionSizer.Add(self.add_label(widget=self.dimensionYselect, panel=panel, label="Height"), pos=(0, 1))
-        dimensionSizer.Add(self.add_label(widget=self.dimensionZselect, panel=panel, label="Base Thickness"), pos=(0, 2))
-        dimensionSizer.Add(self.add_label(widget=self.thicknessSelect, panel=panel, label="Shape Thickness"), pos=(0, 3))
-        sizer.Add(self.add_title(widget=dimensionSizer, panel=panel, label="Dimensions (mm)"), pos=(2, 0), span=(1,2))
-
+        dimensionSizer.Add(dimXselSizer)
+        dimensionSizer.Add(dimYselSizer)
+        dimensionSizer.Add(dimZselSizer)
+        dimensionSizer.Add(thickSelSizer)
         
-        exportSizer = wx.GridBagSizer(1,2)
+        sizer.Add(dimensionSizer, pos=(2, 0), flag=wx.EXPAND)
+
+        #################### Export options ####################
+        
+        exportSizer = wx.StaticBoxSizer(wx.HORIZONTAL, panel, "Export options")
         self.checkboxSaveSTLFile = wx.CheckBox(panel, label='Save STL file')
         self.checkboxSaveSTLFile.SetValue(True)
-        exportSizer.Add(self.checkboxSaveSTLFile, pos=(0, 0))
+        exportSizer.Add(self.checkboxSaveSTLFile)
         
         self.checkboxSaveBlendFile = wx.CheckBox(panel, label='Save Blend file')  
-        exportSizer.Add(self.checkboxSaveBlendFile, pos=(0, 1))
-        sizer.Add(self.add_title(widget=exportSizer, panel=panel, label="Export options"), pos=(3, 0), span=(1,2))
+        exportSizer.Add(self.checkboxSaveBlendFile)
+        sizer.Add(exportSizer, pos=(3, 0), flag=wx.EXPAND)
 
+        #################### Generation ####################
+        
         self.buttonGenerate = wx.Button(panel, label="&Generate", size=(90, 28))
         self.buttonGenerate.Bind(wx.EVT_BUTTON,self.onGenerate)
-        sizer.Add(self.buttonGenerate, pos=(6, 0), span=(1,2), flag=wx.EXPAND)
-        self.buttonGenerate.Disable() # This button is disabled at first and enabled when an image loads
+        sizer.Add(self.buttonGenerate, pos=(6, 0), flag=wx.EXPAND)
+        # This button is disabled at first and enabled when an image loads
+        self.buttonGenerate.Disable()
         
         self.gaugeText = wx.StaticText(panel, label="Idle")
         sizer.Add(self.gaugeText, pos=(4, 0))
         
         self.gauge = wx.Gauge(panel, range=100)
-        sizer.Add(self.gauge, pos=(5,0), span=(1,2), flag=wx.EXPAND)
-        
-        self.PhotoMaxSize = 100
-        self.imageCtrl = wx.StaticBitmap(self.panel, wx.ID_ANY, 
-                                         wx.BitmapFromImage(wx.EmptyImage(self.PhotoMaxSize,self.PhotoMaxSize)))
-        sizer.Add(self.imageCtrl, pos=(0, 3), span=(5,1), flag=wx.EXPAND)
-        
-        sizer.AddGrowableRow(1)
-        sizer.AddGrowableCol(0)
-        
-        panel.SetSizer(sizer)
-        sizer.Fit(self)
+        sizer.Add(self.gauge, pos=(5,0), flag=wx.EXPAND)
         
         # Respond to the update event
         pub.subscribe(self.updateProgress, "update")
         
-    def add_label(self, panel, label, widget):
-        box = wx.StaticBoxSizer(wx.VERTICAL, panel, label)
-        box.Add(widget)
-        return box
-    
-    def add_title(self, panel, label, widget):
-        box = wx.StaticBoxSizer(wx.VERTICAL, panel, label)
-        box.Add(widget)
-        return box
+        #################### Preview ####################
         
+        self.PhotoMaxSize = 100
+        self.imageCtrl = wx.StaticBitmap(self.panel, wx.ID_ANY, 
+                                         wx.BitmapFromImage(wx.EmptyImage(self.PhotoMaxSize,self.PhotoMaxSize)))
+        sizer.Add(self.imageCtrl, pos=(0, 2), span=(5,1), flag=wx.EXPAND)
+        
+        #############################################
+        
+        sizer.Fit(self)
+        
+            
     def disableButtons(self):
         """Disables all buttons to prevent interaction during other work"""
         self.buttonOpen.Disable()
@@ -184,7 +220,7 @@ class MainWindow(wx.Frame):
         wx.CallAfter(self.disableButtons)
         
         # Update the text containing the path
-        wx.CallAfter(self.imagePathText.SetLabel, os.path.basename(imagePath))
+        wx.CallAfter(self.imagePathText.SetValue, os.path.basename(imagePath))
         
         # MAJ UI
         wx.CallAfter(self.refresh)
@@ -208,18 +244,6 @@ class MainWindow(wx.Frame):
         wx.CallAfter(self.enableButtons)
         
     
-    def makeCB(self, color):
-        """Makes a combobox (dropdown) for selecting a ColorType"""
-        cb = wx.ComboBox(self.panel)
-        for obj in ColorType.all():
-            cb.Append(obj.__str__(), obj)
-        cb.SetSelection(0)
-        # TODO handle selection
-        #cb.Bind(wx.EVT_COMBOBOX, self.onSelect)
-        self.colorTypeCB[color] = cb
-        return cb
-    
-    
     def makeColorSquare(self, color):
         """Makes a color square with the given color"""
         square = wx.StaticText(self.panel, label=" ")
@@ -228,41 +252,45 @@ class MainWindow(wx.Frame):
         return square
 
 
-    def makeParameterSelect(self, color):
+    def makeColorHeightSelect(self, color):
         """Makes a field for selecting the color processing parameter"""
-        select = wx.SpinCtrl(self.panel, min=0, max=100, initial=len(self.colorParamSelect))
-        self.colorParamSelect[color] = select
-        return select
+        select, sizer = LabeledControlHelper.make(self.panel, f"Height for color {1+len(self.colorHeightSelect)}", noLabel=True,
+                                                  wxCtrlClass=wx.SpinCtrl, min=0, max=100, initial=len(self.colorHeightSelect))
+        self.colorHeightSelect[color] = select
+        return sizer
     
     
     def onColorsChanged(self):
         """Behaviour for when the detected colors of the image have changed"""
         # Clears previous content
         self.colorTypeCB = {}
-        self.colorParamSelect = {}
+        self.colorHeightSelect = {}
         self.colorSizer.Clear(True)
         self.refresh()
+        
         # Adds new content
-        content = [(wx.StaticText(self.panel, label=x, style=wx.ALIGN_CENTRE_HORIZONTAL)) for x in [" ","Color","Type","Parameter"]] # Headers
+        content = [(wx.StaticText(self.panel, label=x, style=wx.ALIGN_CENTRE_HORIZONTAL)) for x in [" ","Color","Height"]] # Headers
         content = content + [y for color in self.img_to_stl.colors for y in [
             self.makeColorSquare(color=color),
             wx.StaticText(self.panel, label=color),
-            self.makeCB(color),
-            self.makeParameterSelect(color)]] # Values
+            self.makeColorHeightSelect(color)]]
         self.colorSizer.AddMany(content)
+        
+        # Handle tab order
+        for i, color in enumerate(self.img_to_stl.colors):
+            select = self.colorHeightSelect[color]
+            if(i == 0):
+                select.MoveAfterInTabOrder(self.buttonOpen)
+            else:
+                select.MoveAfterInTabOrder(self.colorHeightSelect[self.img_to_stl.colors[i-1]])
+            
         # MAJ UI
         self.refresh()
         
     
-    def getColorType(self, color: str) -> ColorType:
-        """Finds the ColorType selected for a given color"""
-        cb = self.colorTypeCB[color]
-        return cb.GetClientData(cb.GetSelection())
-        
-    
-    def getParameter(self, color: str) -> int:
+    def getColorHeight(self, color: str) -> int:
         """Finds the parameter selected for a given color"""
-        select = self.colorParamSelect[color]
+        select = self.colorHeightSelect[color]
         return select.GetValue()
         
     def onDimensionXChanged(self, event):
@@ -312,18 +340,13 @@ class MainWindow(wx.Frame):
         self.img_to_stl.saveBlendFile = self.checkboxSaveBlendFile.GetValue()
         self.img_to_stl.saveSTL = self.checkboxSaveSTLFile.GetValue()
         
-        self.img_to_stl.colors_definitions = [ColorDefinition(color, self.getColorType(color), self.getParameter(color)) for color in self.img_to_stl.colors]
+        self.img_to_stl.colors_definitions = [ColorDefinition(color, self.getColorHeight(color)) for color in self.img_to_stl.colors]
         
         self.img_to_stl.dimensionXselect = self.dimensionXselect.GetValue()
         self.img_to_stl.dimensionYselect = self.dimensionYselect.GetValue()
         self.img_to_stl.dimensionZselect = self.dimensionZselect.GetValue()
         self.img_to_stl.desiredThickness = self.thicknessSelect.GetValue()
         self.img_to_stl.preserveAspectRatio = False
-        
-        self.img_to_stl.smoothingNbRepeats = self.smoothingNbRepeatsselect.GetValue()
-        self.img_to_stl.smoothingFactor = self.smoothingFactorselect.GetValue()
-        self.img_to_stl.smoothingBorder = self.smoothingBorderselect.GetValue()
-        self.img_to_stl.decimateAngleLimit = self.decimateselect.GetValue()
 
         if (not saveBlendFile and not saveSTL):
             wx.CallAfter(wx.MessageBox, 'Please, choose at least one file type to save', 'Warning', wx.OK | wx.ICON_WARNING)

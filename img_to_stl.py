@@ -1,8 +1,7 @@
-import sys
 import threading
 import time
 from PIL import Image
-from color_types import ColorType, ColorDefinition
+from color_types import ColorDefinition
 from color_detection import findColorsAndMakeNewImage
 from generate_greyscale_image import generateGreyScaleImage
 from stl_generation import MeshMandatoryParameters, OperatorsOpionalParameters, generateSTL
@@ -72,7 +71,7 @@ class ImgToStl:
         try:
             progress.update_progress(0, "Generating height map")
             if self.colors_definitions is None or len(self.colors_definitions) == 0:
-                self.colors_definitions = [ColorDefinition(color, ColorType.FLAT_SURFACE, i) for i, color in enumerate(self.colors)]
+                self.colors_definitions = [ColorDefinition(color, i) for i, color in enumerate(self.colors)]
             grayscaleImagePath = generateGreyScaleImage(self.imagePath, self.colors_definitions, self.pixel_list_labels, self.relevant_label_to_color_hexes)
             
             desiredSize = (self.dimensionXselect, self.dimensionYselect, self.dimensionZselect)
