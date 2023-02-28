@@ -312,9 +312,10 @@ def approximation_weld_threshold(vertices: np.ndarray, merge_radius: double = 3)
     desired_threshold = 1.5*merge_radius*step_size
     # As a safegard, we don't allow the thresold to be greater than the z distance between two nearby points
     # A greater threshold might merge together different planes
+    # (even if the real distance is graeter than the distance along z, in practice with a higher thershold Blender merges vertices)
     sorted_z = sorted(set([z for _,_,z in vertices]))
     min_diff_z = min([sorted_z[i + 1] - sorted_z[i] for i in range(len(sorted_z)-1)])
-    maximum_threshold = .99*math.sqrt(pow(min_diff_z,2)+pow(step_size,2))
+    maximum_threshold = .99*min_diff_z
     
     return min([desired_threshold, maximum_threshold])
 
