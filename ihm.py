@@ -136,7 +136,7 @@ class MainWindow(wx.Frame):
         
         self.PhotoMaxSize = 100
         self.imageCtrl = wx.StaticBitmap(self.panel, wx.ID_ANY, 
-                                         wx.BitmapFromImage(wx.EmptyImage(self.PhotoMaxSize,self.PhotoMaxSize)))
+                                         wx.Bitmap(wx.Image(self.PhotoMaxSize,self.PhotoMaxSize)))
         sizer.Add(self.imageCtrl, pos=(0, 2), span=(5,1), flag=wx.EXPAND)
         
         #############################################
@@ -212,7 +212,7 @@ class MainWindow(wx.Frame):
             NewW = self.PhotoMaxSize * self.image_width / self.image_height
         img = img.Scale(int(NewW),int(NewH))
         # Update the image preview
-        imageCtrl.SetBitmap(wx.BitmapFromImage(img))
+        imageCtrl.SetBitmap(wx.Bitmap(img))
     
     def onImageLoad(self, imagePath: str):
         """Behaviour for loading an image to be processed (executed in a thread)"""
