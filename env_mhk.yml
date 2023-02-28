@@ -2,16 +2,16 @@ name: mhk
 channels:
   - defaults
 dependencies:
-  - python=3.7.11
-  - pip=21.2.4
+  - pip=22.3.1=py310haa95532_0
+  - python=3.10.9=h966fe2a_0
   - pip:
-    - numpy==1.21.4
-    - pillow==8.4.0
+    - numpy==1.24.1
+    - pillow==9.4.0
     - six==1.16.0
-    - scipy==1.7.2
+    - scipy==1.10.0
     - opencv-python==4.5.4.60
-    - bpy==2.82.1
-    - wxpython==4.1.1
+    - bpy==3.4.0
+    - wxpython==4.2.0
     - pypubsub==4.0.3
     - pyinstaller==4.9
 
