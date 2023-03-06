@@ -95,17 +95,20 @@ class MainWindow(wx.Frame):
         
         dimensionSizer = wx.StaticBoxSizer(wx.HORIZONTAL, panel, "Dimensions (mm)")
         
-        self.dimensionXselect, dimXselSizer = LabeledControlHelper.make(self.panel, "Width", wx.SpinCtrl, orientation=wx.VERTICAL, min=10, max=self.max_width, initial=100)
-        self.dimensionYselect, dimYselSizer = LabeledControlHelper.make(self.panel, "Height", wx.SpinCtrl, orientation=wx.VERTICAL, min=10, max=self.max_height, initial=100)
-        self.dimensionZselect, dimZselSizer = LabeledControlHelper.make(self.panel, "Base Thickness", wx.SpinCtrl,  orientation=wx.VERTICAL, min=1, max=self.max_depth, initial=3)
-        self.dimensionXselect.Bind(wx.EVT_SPINCTRL,self.onDimensionXChanged)
-        self.dimensionYselect.Bind(wx.EVT_SPINCTRL,self.onDimensionYChanged)
-        self.thicknessSelect, thickSelSizer = LabeledControlHelper.make(self.panel, "Shape Thickness", wx.SpinCtrl, orientation=wx.VERTICAL, min=1, max=self.max_depth, initial=2)
-        self.thicknessSelect.Bind(wx.EVT_SPINCTRL,self.onThicknessChanged)
-        dimensionSizer.Add(dimXselSizer)
-        dimensionSizer.Add(dimYselSizer)
-        dimensionSizer.Add(dimZselSizer)
-        dimensionSizer.Add(thickSelSizer)
+        self.widthSpinner, widthSizer = LabeledControlHelper.make(self.panel, "Width", wx.SpinCtrl, orientation=wx.VERTICAL, 
+                                                                  min=10, max=self.max_width, initial=self.img_to_stl.meshParameters.meshWidthMM)
+        self.heightSpinner, heightSizer = LabeledControlHelper.make(self.panel, "Height", wx.SpinCtrl, orientation=wx.VERTICAL, 
+                                                                    min=10, max=self.max_height, initial=self.img_to_stl.meshParameters.meshHeightMM)
+        self.baseThicknessSpinner, baseThicknessSizer = LabeledControlHelper.make(self.panel, "Base Thickness", wx.SpinCtrl, orientation=wx.VERTICAL, 
+                                                                                  min=1, max=self.max_depth, initial=self.img_to_stl.meshParameters.meshBaseThicknessMM)
+        self.widthSpinner.Bind(wx.EVT_SPINCTRL,self.onWidthChanged)
+        self.heightSpinner.Bind(wx.EVT_SPINCTRL,self.onHeightChanged)
+        self.imageThicknessSpinner, imageThincknessSizer = LabeledControlHelper.make(self.panel, "Shape Thickness", wx.SpinCtrl, orientation=wx.VERTICAL, 
+                                                                                     min=1, max=self.max_depth, initial=self.img_to_stl.meshParameters.meshImageThicknessMM)
+        dimensionSizer.Add(widthSizer)
+        dimensionSizer.Add(heightSizer)
+        dimensionSizer.Add(baseThicknessSizer)
+        dimensionSizer.Add(imageThincknessSizer)
         
         sizer.Add(dimensionSizer, pos=(2, 0), flag=wx.EXPAND)
 
@@ -244,7 +247,7 @@ class MainWindow(wx.Frame):
         wx.CallAfter(self.onColorsChanged)
         
         # Triggers the aspect ratio logic
-        wx.CallAfter(self.onDimensionXChanged, None)
+        wx.CallAfter(self.onWidthChanged, None)
         
         # Allow the user further interaction with the software
         wx.CallAfter(self.enableButtons)
@@ -299,39 +302,32 @@ class MainWindow(wx.Frame):
         select = self.colorHeightSelect[color]
         return select.GetValue()
         
-    def onDimensionXChanged(self, event):
+    def onWidthChanged(self, event):
         """When the height is changed, ajusts the width to keep the aspect ratio"""
         if self.image_height > 0 and self.image_width > 0:
-            newx = self.dimensionXselect.GetValue()
+            newx = self.widthSpinner.GetValue()
             newy = newx * self.image_height / self.image_width
             if newy <= self.max_height:
-                self.dimensionYselect.SetValue(int(newy))
+                self.heightSpinner.SetValue(int(newy))
             else:
                 # In case the value went over the maximum
                 newx = newx * self.max_height / newy
-                self.dimensionXselect.SetValue(int(newx))
-                self.onDimensionXChanged(int(event))
+                self.widthSpinner.SetValue(int(newx))
+                self.onWidthChanged(int(event))
     
-    def onDimensionYChanged(self, event):
+    def onHeightChanged(self, event):
         """When the width is changed, ajusts the height to keep the aspect ratio"""
         if self.image_height > 0 and self.image_width > 0:
-            newy = self.dimensionYselect.GetValue()
+            newy = self.heightSpinner.GetValue()
             newx = newy * self.image_width / self.image_height
             if newx <= self.max_width:
-                self.dimensionXselect.SetValue(int(newx))
+                self.widthSpinner.SetValue(int(newx))
             else:
                 # In case the value went over the maximum
                 newy = newy * self.max_width / newx
-                self.dimensionYselect.SetValue(int(newy))
-                self.onDimensionYChanged(event)
+                self.heightSpinner.SetValue(int(newy))
+                self.onHeightChanged(event)
 
-    def onThicknessChanged(self, event):
-        """When the thickness, i.e. the minimal height of the object, is changed, we check if the value is lower than the current height"""
-        currentHeight = self.dimensionZselect.GetValue()
-        maxThickness = currentHeight - self.minimum_step_btw_highest_lowest_points
-        if self.thicknessSelect.GetValue() > maxThickness:
-            self.thicknessSelect.SetValue(maxThickness)
-            
         
     def onGenerate(self, event):
         """Behaviour of the 'generate' button"""
@@ -343,15 +339,15 @@ class MainWindow(wx.Frame):
         saveBlendFile=self.checkboxSaveBlendFile.GetValue()
         saveSTL=self.checkboxSaveSTLFile.GetValue()
         
-        self.img_to_stl.saveBlendFile = self.checkboxSaveBlendFile.GetValue()
-        self.img_to_stl.saveSTL = self.checkboxSaveSTLFile.GetValue()
+        self.img_to_stl.meshParameters.saveBlendFile = self.checkboxSaveBlendFile.GetValue()
+        self.img_to_stl.meshParameters.saveSTL = self.checkboxSaveSTLFile.GetValue()
         
         self.img_to_stl.colors_definitions = [ColorDefinition(color, self.getColorHeight(color)) for color in self.img_to_stl.colors]
         
-        self.img_to_stl.dimensionXselect = self.dimensionXselect.GetValue()
-        self.img_to_stl.dimensionYselect = self.dimensionYselect.GetValue()
-        self.img_to_stl.dimensionZselect = self.dimensionZselect.GetValue()
-        self.img_to_stl.desiredThickness = self.thicknessSelect.GetValue()
+        self.img_to_stl.meshParameters.meshWidthMM = self.widthSpinner.GetValue()
+        self.img_to_stl.meshParameters.meshHeightMM = self.heightSpinner.GetValue()
+        self.img_to_stl.meshParameters.meshBaseThicknessMM = self.baseThicknessSpinner.GetValue()
+        self.img_to_stl.meshParameters.meshImageThicknessMM = self.imageThicknessSpinner.GetValue()
         self.img_to_stl.preserveAspectRatio = False
 
         if (not saveBlendFile and not saveSTL):

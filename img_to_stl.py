@@ -4,7 +4,7 @@ from PIL import Image
 from color_types import ColorDefinition
 from color_detection import findColorsAndMakeNewImage
 from generate_greyscale_image import generateGreyScaleImage
-from stl_generation import MeshMandatoryParameters, OperatorsOpionalParameters, generateSTL
+from stl_generation import MeshGenerationParameters, generateSTL
 from dataclasses import dataclass, field
 from typing import List
 from progress import Progress
@@ -23,19 +23,9 @@ class ImgToStl:
     pixel_list_labels: List[int] = field(default_factory=list) 
     relevant_label_to_color_hexes: dict = field(default_factory=dict) 
     
-    saveSTL: bool = True
-    saveBlendFile: bool = True
-    
     preserveAspectRatio: bool = True
-    dimensionXselect: int = 100
-    dimensionYselect: int = 100
-    dimensionZselect: int = 2 
-    desiredThickness: int = 2
-    
-    smoothingNbRepeats = 1
-    smoothingFactor = .1
-    smoothingBorder = 1
-    decimateAngleLimit = 1
+
+    meshParameters: MeshGenerationParameters = MeshGenerationParameters()
 
     def loadImage(self, filepath: str, progress: Progress):
         """Asynchronous preprocessing of a source image
@@ -107,14 +97,14 @@ class ImgToStl:
         """
         
         # If no output was selected, it is useless to continue
-        if (not self.saveBlendFile and not self.saveSTL):
+        if (not self.meshParameters.saveBlendFile and not self.meshParameters.saveSTL):
             print('Please, choose at least one file type to save')
             return False
         
         # We make sure to preserve the aspect ratio if needed
         if (self.preserveAspectRatio): 
             img = Image.open(self.flatImagePath)
-            self.dimensionYselect = int(self.dimensionXselect * img.height / img.width)
+            self.meshParameters.meshHeightMM = int(self.meshParameters.meshWidthMM * img.height / img.width)
         
         try:
             # Generation of the grayscale version of the image, which will be used as a height map
@@ -123,15 +113,11 @@ class ImgToStl:
                 self.colors_definitions = [ColorDefinition(color, i) for i, color in enumerate(self.colors)]
             grayscaleImagePath = generateGreyScaleImage(self.imagePath, self.colors_definitions, self.pixel_list_labels, self.relevant_label_to_color_hexes)
             
-            # Gathering the parameters
-            desiredSize = (self.dimensionXselect, self.dimensionYselect, self.dimensionZselect)
-            meshMandatoryParams = MeshMandatoryParameters(self.imagePath, desiredSize=desiredSize, desiredThickness=self.desiredThickness, saveBlendFile=self.saveBlendFile, saveSTL=self.saveSTL)
-            operatorsOpionalParameters = OperatorsOpionalParameters(smoothingNbRepeats = self.smoothingNbRepeats, smoothingFactor = self.smoothingFactor, smoothingBorder = self.smoothingBorder, decimateAngleLimit = self.decimateAngleLimit)
-            
             # Generating the mesh
             progress.update_progress(50, "Generating STL file")
             startTime = time.time()
-            generateSTL(grayscaleImagePath, meshMandatoryParameters = meshMandatoryParams,operatorsOpionalParameters = operatorsOpionalParameters, progress = progress.make_child(50,100))
+            self.meshParameters.outputMeshPath = self.imagePath
+            generateSTL(grayscaleImagePath, parameters=self.meshParameters, progress = progress.make_child(50,100))
             endGenerationTime = time.time()
             
             # Generation successful

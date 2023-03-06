@@ -1,4 +1,5 @@
 from contextlib import redirect_stdout
+from dataclasses import dataclass
 import sys
 from typing import Tuple
 import sys, os
@@ -12,44 +13,32 @@ from progress import Progress
 
 #region ############################## Parameters ##############################
 
-class MeshMandatoryParameters:
-	"""Represents the different mandatory parameters to generate a mesh"""
-	def __init__(self, outputMeshPath:str, numberOfPointsPerPixel: int = 1, desiredSize: Tuple[double, double, double] = (100., 100., 10.), desiredThickness: double = 5., saveSTL : bool = True, saveBlendFile : bool = True) -> None:
-		"""Constructor of the MeshMandatoryParameters.
+@dataclass(repr=False, eq=False)
+class MeshGenerationParameters:
+    """Parameters used during mesh generation.
 
-		Args:
-			outputMeshPath(str): The path towards the output mesh
-			numberOfPointsPerPixel (int): The number of mesh points that are mapped to one pixel of the source image
-			desiredSize (tuple(double, double, double)): The desired dimensions (x, y, zmax), expressed in mm
-			desiredThickness(double): The minimum desired thickness of the plane, in mm
-			saveSTL(bool): If True, an STL mesh will be generated
-			saveBlendFile(bool): If True, the resulting Blender scene will be saved
-		"""
-		self.outputMeshPath = outputMeshPath
-		self.numberOfPointsPerPixel = numberOfPointsPerPixel
-		self.desiredSize = desiredSize
-		self.desiredThickness = desiredThickness
-		self.saveSTL = saveSTL
-		self.saveBlendFile = saveBlendFile
+    Args:
+        outputMeshPath(str): The path towards the output mesh
+        meshWidthMM(int): The width of the mesh, in mm
+        meshHeightMM(int): The height of the mesh, in mm
+        meshBaseThicknessMM(int): The thickness of the base of the mesh, in mm
+        meshImageThicknessMM(int): The thickness of the carved part of the mesh, in mm
+        saveSTL(bool): If True, an STL mesh will be generated
+        saveBlendFile(bool): If True, the resulting Blender scene will be saved
+        verticesPerPixel (int): The number of vertices that are mapped to one pixel of the source image
+    """
+    outputMeshPath: str = "mesh"
+    
+    meshWidthMM: int = 100
+    meshHeightMM: int = 100
+    meshBaseThicknessMM: int = 5
+    meshImageThicknessMM: int = 3
+    
+    saveSTL : bool = True
+    saveBlendFile : bool = True
+    
+    verticesPerPixel: int = 1
 
-class OperatorsOpionalParameters:
-	"""Represents the different optional parameters used by the operators to generate a mesh"""
-	def __init__(self, displaceEccentricity: int = 16, smoothingNbRepeats: int = 5, smoothingFactor : double = 1., smoothingBorder : double = 0., decimateAngleLimit : double = 0.1) -> None:
-		"""Constructor of the MeshMandatoryParameters.
-
-		Args:
-			displaceEccentricity (int): Maximum excentricity of the texture : higher values reduces blur / at oblique angles but is slower
-			smoothingNbRepeats (int): Number of times the smooth modifier is applied
-			smoothingFactor (double): Lambda factor of the smooth modifier
-			smoothingBorder (double): Lambda factor in border
-			decimateAngleLimit (double): Maximum angle allowed, expressed in radians because it is the unit of Blender
-		"""
-		self.displaceEccentricity = displaceEccentricity 
-		self.smoothingNbRepeats = smoothingNbRepeats 
-		self.smoothingFactor = smoothingFactor 
-		self.smoothingBorder = smoothingBorder 
-		self.decimateAngleLimit = decimateAngleLimit
-	
 #endregion
 
 #region ############################## Files ##############################
@@ -62,13 +51,7 @@ def generateNameResultingFile(inputFilepath : str, desiredFormat : str) -> str:
 		inputFilepath(str): The path towards the original file
 		desiredFormat(str): The format of the resulting file (WITHOUT the dot)
 	"""
-	resultingName = ""
-	if (os.path.isdir(inputFilepath)):
-		# Create a name for the output mesh
-		resultingName = os.path.join(inputFilepath, "result." + desiredFormat)
-	else:
-		resultingName = os.path.splitext(inputFilepath)[0] + "_result." + desiredFormat
-	return resultingName
+	return os.path.splitext(inputFilepath)[0] + "." + desiredFormat
 
 
 def load_grayscale_image(image_path: str) -> np.ndarray:
@@ -274,20 +257,22 @@ def generate_faces_bottom(grayscale_image: np.ndarray, pts_par_px: int = 1) -> n
                     [idx_sol_nn, idx_sol_n0, idx_sol_0n]])
     return faces_bottom
 
-def generate_mesh(image_path: str, desired_width: float, desired_height: float, desired_thikness_top: float, desired_thikness_base: float, pts_par_px: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+def generate_mesh(image_path: str, parameters: MeshGenerationParameters) -> Tuple[np.ndarray, np.ndarray]:
     """Generates a mesh from a grayscale image
 
     Args:
         image_path (str): Path to the grayscale image to be used
-        desired_width (float): width of the generated mesh in mm
-        desired_height (float): height of the generated mesh in mm
-        desired_thikness_top (float): thickness of the carvings on the object
-        desired_thikness_base (float): thickness of the base (min thickness) of the object
-        pts_par_px (int, optional): Amount of vertices per pixel. Defaults to 1.
+        parameters(MeshGenerationParameters): Mesh generation parameters
 
     Returns:
         Tuple[np.ndarray, np.ndarray]: Vertices and faces of the generated mesh
     """
+    widthMM = parameters.meshWidthMM
+    heightMM = parameters.meshHeightMM
+    imageThicknessMM = parameters.meshImageThicknessMM
+    baseThicknessMM = parameters.meshBaseThicknessMM
+    pts_par_px = parameters.verticesPerPixel
+    
     grayscale_image = load_grayscale_image(image_path)
     
     vertices_top = generate_vertices_top(grayscale_image, pts_par_px)
@@ -296,9 +281,9 @@ def generate_mesh(image_path: str, desired_width: float, desired_height: float, 
     
     # OpenCV uses x for rows and y for columns, such as [0,1] is top right and [1,0] botttom left
     # We want to use the opposite, so width and height are reversed in the following lines
-    vertices_top = scale_vertices(vertices_top, (desired_height, desired_width, desired_thikness_top))
-    vertices_border = scale_vertices(vertices_border, (desired_height, desired_width, desired_thikness_base))
-    vertices_bottom = scale_vertices(vertices_bottom, (desired_height, desired_width, desired_thikness_base))
+    vertices_top = scale_vertices(vertices_top, (heightMM, widthMM, imageThicknessMM))
+    vertices_border = scale_vertices(vertices_border, (heightMM, widthMM, baseThicknessMM))
+    vertices_bottom = scale_vertices(vertices_bottom, (heightMM, widthMM, baseThicknessMM))
     
     all_vertices = np.vstack((vertices_top, vertices_border, vertices_bottom))
     
@@ -501,22 +486,21 @@ def blender_export(filepath: str, stl: bool = True, blend: bool = False) -> None
     """
     with suppress_stdout():
         if stl:
-            bpy.ops.export_mesh.stl(filepath=f"{filepath}.stl", use_mesh_modifiers=True)
+            bpy.ops.export_mesh.stl(filepath=generateNameResultingFile(filepath, "stl"), use_mesh_modifiers=True)
         if blend:
-            bpy.ops.wm.save_as_mainfile(filepath=f"{filepath}.blend")
+            bpy.ops.wm.save_as_mainfile(filepath=generateNameResultingFile(filepath, "blend"))
 
-def blender_generate_stl(filepath: str, vertices: np.ndarray, faces: np.ndarray, progress: Progress, stl: bool = True, blend: bool = False):
+def blender_generate_stl(vertices: np.ndarray, faces: np.ndarray, parameters: MeshGenerationParameters, progress: Progress):
     """Generates and exports a Blender mesh from sets of vertices and faces
     Modifiers are added to this mesh, and will be applied during STL export
 
     Args:
-        filepath (str): Path to the original image
         vertices (np.ndarray): Vertices of the mesh to generate
         faces (np.ndarray): Faces of the mesh to generate
+        parameters(MeshGenerationParameters): Mesh generation parameters
         progress (Progress): Object used to notify the program when progress is made
-        stl (bool, optional): If true, generates a STL file. Defaults to True.
-        blend (bool, optional): If true, generates a BLEND file. Defaults to False.
     """
+    
     progress.update_progress(0, "Creation of the blender object")
     blender_new_empty_scene()
     object = blender_new_object(vertices, faces)
@@ -536,7 +520,7 @@ def blender_generate_stl(filepath: str, vertices: np.ndarray, faces: np.ndarray,
     blender_add_triangulate_modifier(object, apply=False)
     
     progress.update_progress(50, "Exporting")
-    blender_export(filepath, stl=stl, blend=blend)
+    blender_export(parameters.outputMeshPath, stl=parameters.saveSTL, blend=parameters.saveBlendFile)
 
 #endregion
 
@@ -571,30 +555,25 @@ def suppress_stdout():
 
 #region ############################## Main method ##############################
 
-def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters, operatorsOpionalParameters: OperatorsOpionalParameters, progress: Progress):
+def generateSTL(imagePath: str, parameters: MeshGenerationParameters, progress: Progress):
 	"""
 	Generate the mesh under the stl format.
 
 	Args:
 		imagePath(str): The path towards the depth map image
-		meshMandatoryParameters(MeshMandatoryParameters): The mandatory parameters to generate the mesh
+		parameters(MeshMandatoryParameters): The mandatory parameters to generate the mesh
         operatorsOpionalParameters(OperatorsOpionalParameters): Optional parameters for more fine tuning of the mesh generation 
         progress (Progress): Object used to notify the program when progress is made
 	"""
 	# ## Check if the result of the generation will be saved in at least one format, otherwise raise an exception
-	if not(meshMandatoryParameters.saveBlendFile or meshMandatoryParameters.saveSTL):
+	if not(parameters.saveBlendFile or parameters.saveSTL):
 		raise("No output format detected, doing nothing")
-
-	desired_width = meshMandatoryParameters.desiredSize[0]
-	desired_height = meshMandatoryParameters.desiredSize[1]
-	desired_thickness_top = meshMandatoryParameters.desiredThickness
-	desired_thickness_bottom = meshMandatoryParameters.desiredSize[2]
  
 	progress.update_progress(0, "Generation of the base mesh")
-	vertices, faces = generate_mesh(imagePath, desired_width, desired_height, desired_thickness_top, desired_thickness_bottom)
+	vertices, faces = generate_mesh(imagePath, parameters)
  
 	progress.update_progress(50, "Applying modifiers and exporting")
-	blender_generate_stl(meshMandatoryParameters.outputMeshPath, vertices, faces, stl=meshMandatoryParameters.saveSTL, blend=meshMandatoryParameters.saveBlendFile, progress=progress.make_child(50,100))
+	blender_generate_stl(vertices, faces, parameters, progress=progress.make_child(50,100))
  
 	progress.update_progress(100, "Done")
 
