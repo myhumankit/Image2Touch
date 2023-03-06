@@ -54,7 +54,7 @@ class OperatorsOpionalParameters:
 
 #region ############################## Files ##############################
 
-def generateNameResultingFile(inputFilepath : str, desiredFormat : str):
+def generateNameResultingFile(inputFilepath : str, desiredFormat : str) -> str:
 	"""
 	Generate a filename from the inputFilepath.
 
@@ -72,6 +72,14 @@ def generateNameResultingFile(inputFilepath : str, desiredFormat : str):
 
 
 def load_grayscale_image(image_path: str) -> np.ndarray:
+    """Loads an image as a grayscale matrix
+
+    Args:
+        image_path (str): Path to the image to load
+
+    Returns:
+        np.ndarray: The grayscale data of the image
+    """
     image = cv2.imread(image_path)
     grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     return grayscale_image
@@ -81,6 +89,15 @@ def load_grayscale_image(image_path: str) -> np.ndarray:
 #region ############################## Mesh generation ##############################
 
 def generate_vertices_top(grayscale_image: np.ndarray, pts_par_px: int = 1) -> np.ndarray:
+    """Generates the vertices corresponding to the pixels in the source image
+
+    Args:
+        grayscale_image (np.ndarray): Source image as a grayscale matrix
+        pts_par_px (int, optional): Amount of vertices per pixel. Defaults to 1. Unitl now no reason was found to increase it.
+
+    Returns:
+        np.ndarray: The generated vertices
+    """
     nb_pts_x = grayscale_image.shape[0]*pts_par_px
     nb_pts_y = grayscale_image.shape[1]*pts_par_px
     vertices_top = np.array([(x, y, grayscale_image[x,y]) for y in range(nb_pts_y) for x in range(nb_pts_x)])
@@ -88,6 +105,16 @@ def generate_vertices_top(grayscale_image: np.ndarray, pts_par_px: int = 1) -> n
     return vertices_top
 
 def generate_vertices_border(grayscale_image: np.ndarray, pts_par_px: int = 1) -> np.ndarray:
+    """For each of the vertices placed on the sides of the object, creates a vertex under it
+    This is necessary to prevent artifacts, where the side faces exceed the top boundary of the object
+
+    Args:
+        grayscale_image (np.ndarray): Source image as a grayscale matrix
+        pts_par_px (int, optional): Amount of vertices per pixel. Defaults to 1.
+
+    Returns:
+        np.ndarray: The generated vertices
+    """
     nb_pts_x = grayscale_image.shape[0]*pts_par_px
     nb_pts_y = grayscale_image.shape[1]*pts_par_px
     vertices_border = np.array([(x, y, -1) for y in range(nb_pts_y) for x in range(nb_pts_x) if x == 0 or y == 0 or x == nb_pts_x-1 or y == nb_pts_y-1])
@@ -95,6 +122,11 @@ def generate_vertices_border(grayscale_image: np.ndarray, pts_par_px: int = 1) -
     return vertices_border
 
 def generate_vertices_bottom() -> np.ndarray:
+    """Generates the four vertices on the bottom of the object
+
+    Returns:
+        np.ndarray: The generated vertices
+    """
     vertices_bottom = np.array([(0,0,-1),
                                 (1,0,-1),
                                 (0,1,-1),
@@ -102,9 +134,27 @@ def generate_vertices_bottom() -> np.ndarray:
     return vertices_bottom
 
 def scale_vertices(vertices: np.ndarray, scale: Tuple[double, double, double]) -> np.ndarray:
+    """Scales vertices on each axis
+
+    Args:
+        vertices (np.ndarray): The vertices to scale
+        scale (Tuple[double, double, double]): The scaling factors for each axis
+
+    Returns:
+        np.ndarray: The scaled vertices
+    """
     return vertices * scale
 
 def generate_faces_top(grayscale_image: np.ndarray, pts_par_px: int = 1) -> np.ndarray:
+    """Generates the faces for the top part of the object
+
+    Args:
+        grayscale_image (np.ndarray): Source image as a grayscale matrix
+        pts_par_px (int, optional): Amount of vertices per pixel. Defaults to 1.
+
+    Returns:
+        np.ndarray: The generated faces
+    """
     nb_pts_x = grayscale_image.shape[0]*pts_par_px
     nb_pts_y = grayscale_image.shape[1]*pts_par_px
     
@@ -118,6 +168,15 @@ def generate_faces_top(grayscale_image: np.ndarray, pts_par_px: int = 1) -> np.n
     return faces_top
 
 def generate_faces_border(grayscale_image: np.ndarray, pts_par_px: int = 1) -> np.ndarray:
+    """Generates the faces for the upper sides of the object
+
+    Args:
+        grayscale_image (np.ndarray): Source image as a grayscale matrix
+        pts_par_px (int, optional): Amount of vertices per pixel. Defaults to 1.
+
+    Returns:
+        np.ndarray: The generated faces
+    """
     nb_pts_x = grayscale_image.shape[0]*pts_par_px
     nb_pts_y = grayscale_image.shape[1]*pts_par_px
     nb_vert_top = nb_pts_x*nb_pts_y
@@ -150,6 +209,15 @@ def generate_faces_border(grayscale_image: np.ndarray, pts_par_px: int = 1) -> n
     return faces_border
 
 def generate_faces_side(grayscale_image: np.ndarray, pts_par_px: int = 1) -> np.ndarray:
+    """Generates the faces for the lower sides of the object
+
+    Args:
+        grayscale_image (np.ndarray): Source image as a grayscale matrix
+        pts_par_px (int, optional): Amount of vertices per pixel. Defaults to 1.
+
+    Returns:
+        np.ndarray: The generated faces
+    """
     nb_pts_x = grayscale_image.shape[0]*pts_par_px
     nb_pts_y = grayscale_image.shape[1]*pts_par_px
     nb_vert_top = nb_pts_x*nb_pts_y
@@ -184,6 +252,15 @@ def generate_faces_side(grayscale_image: np.ndarray, pts_par_px: int = 1) -> np.
     return faces_side
 
 def generate_faces_bottom(grayscale_image: np.ndarray, pts_par_px: int = 1) -> np.ndarray:
+    """Generates the faces for the bottom part of the object
+
+    Args:
+        grayscale_image (np.ndarray): Source image as a grayscale matrix
+        pts_par_px (int, optional): Amount of vertices per pixel. Defaults to 1.
+
+    Returns:
+        np.ndarray: The generated faces
+    """
     nb_pts_x = grayscale_image.shape[0]*pts_par_px
     nb_pts_y = grayscale_image.shape[1]*pts_par_px
     nb_vert_top = nb_pts_x*nb_pts_y
@@ -198,6 +275,19 @@ def generate_faces_bottom(grayscale_image: np.ndarray, pts_par_px: int = 1) -> n
     return faces_bottom
 
 def generate_mesh(image_path: str, desired_width: float, desired_height: float, desired_thikness_top: float, desired_thikness_base: float, pts_par_px: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+    """Generates a mesh from a grayscale image
+
+    Args:
+        image_path (str): Path to the grayscale image to be used
+        desired_width (float): width of the generated mesh in mm
+        desired_height (float): height of the generated mesh in mm
+        desired_thikness_top (float): thickness of the carvings on the object
+        desired_thikness_base (float): thickness of the base (min thickness) of the object
+        pts_par_px (int, optional): Amount of vertices per pixel. Defaults to 1.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Vertices and faces of the generated mesh
+    """
     grayscale_image = load_grayscale_image(image_path)
     
     vertices_top = generate_vertices_top(grayscale_image, pts_par_px)
@@ -226,6 +316,8 @@ def generate_mesh(image_path: str, desired_width: float, desired_height: float, 
 #region ############################## Blender ##############################
 
 def blender_new_empty_scene() -> None:
+    """Empties the Blender scene before use
+    """
     scene = bpy.context.scene
     for obj in scene.objects:
         bpy.data.objects.remove(obj)
@@ -235,6 +327,17 @@ def blender_new_empty_scene() -> None:
 
 
 def blender_new_object(vertices: np.ndarray, faces: np.ndarray, object_name: str = "object", mesh_name: str = "mesh") -> bpy.types.Object:
+    """Creates a new object in the scene using mesh data
+
+    Args:
+        vertices (np.ndarray): The vertices of the mesh to use
+        faces (np.ndarray): The faces of the mesh to use
+        object_name (str, optional): The name given to the new object. Defaults to "object".
+        mesh_name (str, optional): The name given to the mesh in Blender. Defaults to "mesh".
+
+    Returns:
+        bpy.types.Object: The newly created object
+    """
     vertices = list(vertices)
     edges = []
     faces = list(faces)
@@ -247,6 +350,12 @@ def blender_new_object(vertices: np.ndarray, faces: np.ndarray, object_name: str
     return object
     
 def blender_create_vertex_groups(object: bpy.types.Object, vertices: np.ndarray) -> None:
+    """Makes two vertex groups for the object : one for the upper face and one for the sides
+
+    Args:
+        object (bpy.types.Object): The object to edit
+        vertices (np.ndarray): The vertices of the object's mesh
+    """
     max_x = max(vertices ,key=lambda item:item[0])[0]
     max_y = max(vertices ,key=lambda item:item[1])[1]
     indices_of_face_vertices = [i for i,(x,y,_) in enumerate(vertices) if x != 0 and y != 0 and x != max_x and y != max_y]
@@ -260,10 +369,23 @@ def blender_create_vertex_groups(object: bpy.types.Object, vertices: np.ndarray)
     
 
 def blender_select_object(object: bpy.types.Object) -> None:
+    """Has Blender select a given object
+
+    Args:
+        object (bpy.types.Object): The object to select
+    """
     bpy.context.view_layer.objects.active = object
 
 
 def blender_add_decimate_modifier(object: bpy.types.Object, ratio: float, apply: bool = False) -> None:
+    """Adds a decimate modifier to an object.
+    This modifier reduces the amount of vertices of the object
+
+    Args:
+        object (bpy.types.Object): The target object
+        ratio (float): The ratio of vertices to keep
+        apply (bool, optional): Applies the modifier to the object. Defaults to False.
+    """
     decimateModifier = object.modifiers.new(name="Decimator", type='DECIMATE')
     decimateModifier.ratio = ratio
     
@@ -271,14 +393,30 @@ def blender_add_decimate_modifier(object: bpy.types.Object, ratio: float, apply:
         bpy.ops.object.modifier_apply(modifier="Decimator")
 
 def approximation_decimate_ratio(vertices: np.ndarray) -> double:
-    # Empirical calculation of the decimation ratio
-    # We want to keep twice the amount of vertices corresponding to the perimeter of the image
-    # We approximate that the image is a square of dimentions sqrt(n)*sqrt(n) where n is the amount of vertices
-    # With this approximation, we have the perimeter p = 4s-4, appoximated to 4s
-    # So we want to keep 4s vertices, which is 4s/n % of vertices
+    """Empirical calculation of the decimation ratio
+    We want to keep twice the amount of vertices corresponding to the perimeter of the image
+    We approximate that the image is a square of dimentions sqrt(n)*sqrt(n) where n is the amount of vertices
+    With this approximation, we have the perimeter p = 4s-4, appoximated to 4s
+    So we want to keep 4s vertices, which is 4s/n % of vertices
+
+    Args:
+        vertices (np.ndarray): The vertices of the target object
+
+    Returns:
+        double: The computed decimate ratio
+    """
+    
     return 4*math.sqrt(len(vertices))/len(vertices)
 
 def blender_add_planar_decimate_modifier(object: bpy.types.Object, angle_limit_deg: float, apply: bool = False) -> None:
+    """Adds a planar decimate modifier to an object.
+    This modifier removes vertices if the difference it makes is an angle lower than a given limit
+
+    Args:
+        object (bpy.types.Object): The target object
+        angle_limit_deg (float): Any angle greater than this limit will not be affected
+        apply (bool, optional): Applies the modifier to the object. Defaults to False.
+    """
     decimateModifier = object.modifiers.new(name="Planar Decimator", type='DECIMATE')
     decimateModifier.decimate_type = 'DISSOLVE'
     decimateModifier.angle_limit = math.radians(angle_limit_deg)
@@ -287,6 +425,16 @@ def blender_add_planar_decimate_modifier(object: bpy.types.Object, angle_limit_d
         bpy.ops.object.modifier_apply(modifier="Planar Decimator")
 
 def blender_add_weld_modifier(object: bpy.types.Object, merge_threshold: float, vertex_group: str = "Face", invert_vertex_group: bool = False, apply: bool = False) -> None:
+    """Adds a weld modifier to an object.
+    This modifier merges vertices that are closer than a given threshold
+
+    Args:
+        object (bpy.types.Object): The target object
+        merge_threshold (float): Any vertices closer than this thershold are merged
+        vertex_group (str, optional): Only merges vertices from (or not from, see invert_vertex_group) this vertex group. Defaults to "Face".
+        invert_vertex_group (bool, optional): If true, inverts the vertex group (only merges vertices not in the vertex group). Defaults to False.
+        apply (bool, optional): Applies the modifier to the object. Defaults to False.
+    """
     weldModifier = object.modifiers.new(name="Weld", type='WELD')
     weldModifier.mode = 'CONNECTED'
     weldModifier.merge_threshold = merge_threshold
@@ -297,22 +445,44 @@ def blender_add_weld_modifier(object: bpy.types.Object, merge_threshold: float, 
         bpy.ops.object.modifier_apply(modifier="Decimator")
 
 def blender_add_triangulate_modifier(object: bpy.types.Object, apply: bool = False) -> None:
+    """Adds a triangulate modifier to an object.
+    This modifier makes all faces into triangles (which isn't done by default in Blender)
+
+    Args:
+        object (bpy.types.Object): The target object
+        apply (bool, optional): Applies the modifier to the object. Defaults to False.
+    """
     object.modifiers.new(name="Triangulate", type='TRIANGULATE')
 
     if(apply):
         bpy.ops.object.modifier_apply(modifier="Triangulate")
 
 def approximation_weld_threshold(vertices: np.ndarray, merge_radius: double = 3) -> double:
-    # This thershold will merge together pixels that are close together
-    # This should only apply to pixels in the same plane, unless planes are very close together
-    # The distance between two neighbour vertices of the same plane is equal to the first vertex's x coordinate
-    # We multiply this value by 1.5 (> sqrt(2)) to allow merging of diagonal vertices
-    # We then multiply by merge_radius in order to merge vertices that are n spaces away
+    """Empirical calculation of the weld threshold
+
+    This thershold will merge together pixels that are close together
+    This should only apply to pixels in the same plane, unless planes are very close together
+    The distance between two neighbour vertices of the same plane is equal to the first vertex's x coordinate
+    We multiply this value by 1.5 (> sqrt(2)) to allow merging of diagonal vertices
+    We then multiply by merge_radius in order to merge vertices that are n spaces away
+
+    As a safegard, we don't allow the thresold to be greater than the z distance between two nearby points
+    A greater threshold might merge together different planes
+    (even if the real distance is graeter than the distance along z, in practice with a higher thershold Blender merges vertices)
+    
+    Args:
+        vertices (np.ndarray): The vertices of the target object
+        merge_radius (double, optional): Maximum distance between merged vertices, in pixels of the source image. Defaults to 3.
+
+    Returns:
+        double: The computed thershold
+    """
+    
+    # Ideal thershold, ignoring problems with the Z axis
     step_size = vertices[1][0]
     desired_threshold = 1.5*merge_radius*step_size
-    # As a safegard, we don't allow the thresold to be greater than the z distance between two nearby points
-    # A greater threshold might merge together different planes
-    # (even if the real distance is graeter than the distance along z, in practice with a higher thershold Blender merges vertices)
+
+    # Reducing the thershold if necessary in order to avoid merging points along the Z axis
     sorted_z = sorted(set([z for _,_,z in vertices]))
     min_diff_z = min([sorted_z[i + 1] - sorted_z[i] for i in range(len(sorted_z)-1)])
     maximum_threshold = .99*min_diff_z
@@ -321,6 +491,14 @@ def approximation_weld_threshold(vertices: np.ndarray, merge_radius: double = 3)
 
 
 def blender_export(filepath: str, stl: bool = True, blend: bool = False) -> None:
+    """Exports the Blender scene as a STL file and/or a BLEND file
+    Modifiers will be applied during STL export
+
+    Args:
+        filepath (str): Path to the output files, without the extension
+        stl (bool, optional): If true, generates a STL file. Defaults to True.
+        blend (bool, optional): If true, generates a BLEND file. Defaults to False.
+    """
     with suppress_stdout():
         if stl:
             bpy.ops.export_mesh.stl(filepath=f"{filepath}.stl", use_mesh_modifiers=True)
@@ -328,6 +506,17 @@ def blender_export(filepath: str, stl: bool = True, blend: bool = False) -> None
             bpy.ops.wm.save_as_mainfile(filepath=f"{filepath}.blend")
 
 def blender_generate_stl(filepath: str, vertices: np.ndarray, faces: np.ndarray, progress: Progress, stl: bool = True, blend: bool = False):
+    """Generates and exports a Blender mesh from sets of vertices and faces
+    Modifiers are added to this mesh, and will be applied during STL export
+
+    Args:
+        filepath (str): Path to the original image
+        vertices (np.ndarray): Vertices of the mesh to generate
+        faces (np.ndarray): Faces of the mesh to generate
+        progress (Progress): Object used to notify the program when progress is made
+        stl (bool, optional): If true, generates a STL file. Defaults to True.
+        blend (bool, optional): If true, generates a BLEND file. Defaults to False.
+    """
     progress.update_progress(0, "Creation of the blender object")
     blender_new_empty_scene()
     object = blender_new_object(vertices, faces)
@@ -389,6 +578,8 @@ def generateSTL(imagePath: str, meshMandatoryParameters: MeshMandatoryParameters
 	Args:
 		imagePath(str): The path towards the depth map image
 		meshMandatoryParameters(MeshMandatoryParameters): The mandatory parameters to generate the mesh
+        operatorsOpionalParameters(OperatorsOpionalParameters): Optional parameters for more fine tuning of the mesh generation 
+        progress (Progress): Object used to notify the program when progress is made
 	"""
 	# ## Check if the result of the generation will be saved in at least one format, otherwise raise an exception
 	if not(meshMandatoryParameters.saveBlendFile or meshMandatoryParameters.saveSTL):

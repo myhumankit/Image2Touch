@@ -32,7 +32,7 @@ def set_blender_env():
     Tries to find blender script files, and add them to the environment
     The files have to be in x.xx/scripts and x.xx/datafiles folders, where x.xx is the blender version
     Has to be done before importing bpy
-    # Useful for the exe version, making it truly portable
+    Useful for the exe version, making it truly portable
     """
     blender_dir_list = [d for d in os.listdir('.') if re.match(r'^[0-9]+\.[0-9]+$', d) and os.path.isdir(d+"/scripts")]
     if(len(blender_dir_list) > 0):

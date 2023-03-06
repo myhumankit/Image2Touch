@@ -6,7 +6,7 @@ from color_types import ColorDefinition
 from typing import List
 from typing import Dict
 
-def generateGreyScaleImage(imagePath, colors: List[ColorDefinition], pixelListLabels : List[int], labelsToColorIndices : Dict[int, int]):
+def generateGreyScaleImage(imagePath, colors: List[ColorDefinition], pixelListLabels : List[int], labelsToColorIndices : Dict[int, int]) -> str:
     """Generates a grey scale image based on the results of the classification and the user parameters
 
     Args:

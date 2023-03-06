@@ -8,16 +8,20 @@ import os
 from img_to_stl import ImgToStl
 
 class LabeledControlHelper(object):
-    """ Represents a Labeled Control. Provides a class to create and hold on to the objects and automatically associate
-    the two controls together.
-    Relies on guiHelper.associateElements(), any limitations in guiHelper.associateElements() also apply here.
+    """ Represents a Labeled Control, inspierd by the NVDA implementation.
+    The label can be made invisible, in order to change what is said by screen readers without displaying the label on screen
     """
     def __init__(self, parent: wx.Window, labelText: str, wxCtrlClass: wx.Control, orientation=wx.HORIZONTAL, noLabel:bool=False, **kwargs):
-        """ @param parent: An instance of the parent wx window. EG wx.Dialog
-            @param labelText: The text to associate with a wx control.
-            @param wxCtrlClass: The class to associate with the label, eg: wx.TextCtrl
-            @param kwargs: The keyword arguments used to instantiate the wxCtrlClass
+        """Constructor for the labelled control
+
+        Args:
+            parent (wx.Window):  An instance of the parent wx window. EG wx.Dialog
+            labelText (str): The text to display next to the control
+            wxCtrlClass (wx.Control): The class of the control
+            orientation (_type_, optional): If wx.VERTICAL, the label is to the top of the control, otherwise it is to the left. Defaults to wx.HORIZONTAL.
+            noLabel (bool, optional): If true, the label is not displayed on screen, but will still be read by screen readers. Defaults to False.
         """
+        
         object.__init__(self)
         if noLabel:
             self.label = wx.StaticText(parent, label=labelText, size=(0,0))
@@ -36,6 +40,7 @@ class LabeledControlHelper(object):
 class MainWindow(wx.Frame):
     """The main window of the application"""
     def __init__(self, parent, title):
+        """Constructor for the window"""
         super(MainWindow, self).__init__(parent, title=title)
         
         self.image_width = 0
@@ -200,6 +205,7 @@ class MainWindow(wx.Frame):
         
     
     def setImage(self, imageCtrl, imagePath):
+        """Changes the displayed image in the preview"""
         # scale the image, preserving the aspect ratio
         img = wx.Image(imagePath, wx.BITMAP_TYPE_ANY)
         self.image_width = img.GetWidth()

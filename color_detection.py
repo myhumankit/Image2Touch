@@ -4,8 +4,9 @@ import cv2
 from scipy.cluster.hierarchy import ward, fcluster
 from scipy.spatial.distance import pdist, euclidean
 from tempfile import mkstemp
+from progress import Progress
 
-def findColorsAndMakeNewImage(imagePath, fnUpdateProgress):
+def findColorsAndMakeNewImage(imagePath: str, progress: Progress):
     """Finds the different colors used in the image and makes a new one using only flat coloring
 
     Args:
@@ -16,16 +17,20 @@ def findColorsAndMakeNewImage(imagePath, fnUpdateProgress):
         to which belongs each pixel and the dictionnary that relates a label to the list of hex representations of the colors
     """
     
-    # Parameters that could become arguments
-    carre_distance_min = 100
-    prct = .003
+    ## Parameters that could become arguments
+    
+    # Distance used for Ward clustering
+    distance_min_squared = 100
+    # Minimum amount of pixels needed for a color to be considered, as a percentage of the total amount of pixels
+    min_color_prct = .003
+    # Any pixel that has less than this amount of neighbours of the same color will count as being isolated
     min_same_neighbours = 4
     
     
     ## Part 1 : finding the different colors
     
     # Start the progress bar
-    fnUpdateProgress(0, "Listing the different colors")
+    progress.update_progress(0, "Listing the different colors")
     
     # Reads the image and converts to RGB
     img = cv2.cvtColor(cv2.imread(imagePath), cv2.COLOR_BGR2RGB)
@@ -44,10 +49,10 @@ def findColorsAndMakeNewImage(imagePath, fnUpdateProgress):
     # Ward clustering
     y = pdist(color_list_duplicates)
     Z = ward(y)
-    labels = fcluster(Z, carre_distance_min, criterion='distance')
+    labels = fcluster(Z, distance_min_squared, criterion='distance')
     
     # We get to this point pretty fast
-    fnUpdateProgress(5)
+    progress.update_progress(5)
     
     # processes color means for each class
     unique_labels = np.unique(labels)
@@ -65,10 +70,10 @@ def findColorsAndMakeNewImage(imagePath, fnUpdateProgress):
     means = [[int(round(x/c)) for x in s] for s,c in zip(sums, counts)]
     
     # The means is the most intensive step of this first part
-    fnUpdateProgress(45)
+    progress.update_progress(45)
     
     # Filters classes that appear in at least 0.3% of the image
-    relevant_labels = [l for l,c in zip(unique_labels, counts) if c > img.shape[0] * img.shape[1] * prct]
+    relevant_labels = [l for l,c in zip(unique_labels, counts) if c > img.shape[0] * img.shape[1] * min_color_prct]
     relevant_colors = [[math.floor(r),math.floor(g),math.floor(b)] for l, [r,g,b] in zip(unique_labels, means) if l in relevant_labels]
     relevant_label_to_mean = {l:c for l,c in zip(relevant_labels, relevant_colors)}
     
@@ -81,7 +86,7 @@ def findColorsAndMakeNewImage(imagePath, fnUpdateProgress):
     
     ## Part 2 : making the new image
     
-    fnUpdateProgress(50, "Generating flat colored image")
+    progress.update_progress(50, "Generating flat colored image")
 
     # For each unique color in the image, associate a label from relevant_labels, or a default value
     no_label = -42
@@ -124,7 +129,7 @@ def findColorsAndMakeNewImage(imagePath, fnUpdateProgress):
 
         nbIter += 1
         # Remaining progress is divided by 2 each iteration
-        fnUpdateProgress(int(100-50/(2**nbIter)))
+        progress.update_progress(int(100-50/(2**nbIter)))
     
     # Once all pixels have a label, we rebuild the image
     pixel_list_2 = [relevant_label_to_mean[label] for label in pixel_list_labels]
@@ -136,7 +141,7 @@ def findColorsAndMakeNewImage(imagePath, fnUpdateProgress):
     cv2.imwrite(image_path, img_2_bgr)
     
     # We are done
-    fnUpdateProgress(100)
+    progress.update_progress(100)
     
     return color_hexes, image_path, pixel_list_labels, relevant_label_to_idx_color_hexes
     
