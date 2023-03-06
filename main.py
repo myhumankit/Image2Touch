@@ -22,13 +22,15 @@ def main_gui(args):
         app.MainLoop()
 
 def main_no_gui(args):
-    from img_to_stl import ImgToStl
-    from progress import ConsoleProgress
-    
-    filepath = args.file
-    img_to_stl = ImgToStl()
-    progress = ConsoleProgress(max=100)
-    img_to_stl.loadImageAndGenerateMesh(filepath, progress)
+    with set_blender_env():
+        from progress import ConsoleProgress
+        # This imports bpy, and thus needs to happen after set_blender_env
+        from img_to_stl import ImgToStl
+        
+        filepath = args.file
+        img_to_stl = ImgToStl()
+        progress = ConsoleProgress(max=100)
+        img_to_stl.loadImageAndGenerateMesh(filepath, progress)
 
 def parseArgs():
     argParser = argparse.ArgumentParser()
