@@ -22,11 +22,20 @@ param(
     [string]$BlenderScriptPath = $null
 )
 
+$scriptPath = split-path -parent $MyInvocation.MyCommand.Definition
+$needsCondaActivate = $true
+
 if((-not $PythonPath) -and (Test-Path .env)) {
     # Read python env directory
     $PythonPath = (Get-Content .env) `
     | Where-Object { $_ -match '^PYTHONPATH="?(.*)python.exe' } `
     | ForEach-Object { $Matches[1] }
+}
+
+if(-not $PythonPath) {
+    # Use the default python and hope we already are in a virtual environment
+    $PythonPath = split-path -parent (Get-Command python).Source
+    $needsCondaActivate = $false
 }
 
 # Error handling
@@ -55,8 +64,20 @@ if(-not $benderScriptFolder) {
     exit
 }
 
+# Makes shure we are in the correct folder
+Push-Location $scriptPath
+if(-not (Test-Path "main.py")) {
+    Write-Error "Could not locate python file : main.py."
+    exit
+}
+
 # Generate executable (path is changed to double all occurences of '\' to please cmd)
-cmd /c "call conda activate `"$($PythonPath -replace '\\','\\')`" & pyinstaller --onefile main.py"
+if($needsCondaActivate) {
+    cmd /c "call conda activate `"$($PythonPath -replace '\\','\\')`" & pyinstaller --onefile main.py"
+}
+else {
+    cmd /c "pyinstaller --onefile main.py"
+}
 
 # Renames the executable
 $exeName = "Image2Touch.exe"
@@ -68,3 +89,6 @@ Rename-Item "dist/main.exe" $exeName
 
 # Copy Blender scripts
 Copy-Item -Recurse -Force $benderScriptFolder dist\
+
+# Leave the folder
+Pop-Location
