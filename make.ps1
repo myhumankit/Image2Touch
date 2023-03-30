@@ -90,5 +90,9 @@ Rename-Item "dist/main.exe" $exeName
 # Copy Blender scripts
 Copy-Item -Recurse -Force $benderScriptFolder dist\
 
+# Convert and copy documentation
+./doc_to_html.ps1
+Copy-Item "help.html" dist\
+
 # Leave the folder
 Pop-Location

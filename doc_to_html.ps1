@@ -26,4 +26,4 @@ $regexps |ForEach-Object {
 }
 
 # Add root HTML tags and write to the output file
-Set-Content -Path ./README.html -Value @("<html>", "<body>", "", $res, "</body>", "</html>") -Encoding ASCII
+Set-Content -Path ./help.html -Value @("<html>", "<body>", "", $res, "</body>", "</html>") -Encoding ASCII
