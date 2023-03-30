@@ -66,17 +66,17 @@ if(-not $benderScriptFolder) {
 
 # Makes shure we are in the correct folder
 Push-Location $scriptPath
-if(-not (Test-Path "main.py")) {
+if(-not (Test-Path "src/main.py")) {
     Write-Error "Could not locate python file : main.py."
     exit
 }
 
 # Generate executable (path is changed to double all occurences of '\' to please cmd)
 if($needsCondaActivate) {
-    cmd /c "call conda activate `"$($PythonPath -replace '\\','\\')`" & pyinstaller --onefile main.py"
+    cmd /c "call conda activate `"$($PythonPath -replace '\\','\\')`" & pyinstaller --onefile src/main.py"
 }
 else {
-    cmd /c "pyinstaller --onefile main.py"
+    cmd /c "pyinstaller --onefile src/main.py"
 }
 
 # Renames the executable
