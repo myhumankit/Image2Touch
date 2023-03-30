@@ -70,6 +70,32 @@ class MainWindow(wx.Frame):
         
         panel.SetSizer(sizer)
         
+        #################### Menu Bar ####################
+        
+        menuBar = wx.MenuBar()
+        self.SetMenuBar(menuBar)
+        self.Bind(wx.EVT_MENU, self.menuhandler)
+
+        fileMenu = wx.Menu()
+        menuBar.Append(fileMenu, '&File')
+        
+        self.openMenuItem = wx.MenuItem(fileMenu,wx.ID_OPEN, text = "&Open...",kind = wx.ITEM_NORMAL)
+        fileMenu.Append(self.openMenuItem)
+
+        self.generateMenuItem = wx.MenuItem(fileMenu,wx.ID_EXECUTE, text = "&Generate",kind = wx.ITEM_NORMAL)
+        fileMenu.Append(self.generateMenuItem)
+        # This menu item is disabled at first and enabled when an image loads
+        self.generateMenuItem.Enable(False)
+
+        helpMenu = wx.Menu()
+        menuBar.Append(helpMenu, '&Help')
+        
+        manualMenuItem = wx.MenuItem(helpMenu,wx.ID_HELP, text = "User &Manual",kind = wx.ITEM_NORMAL)
+        helpMenu.Append(manualMenuItem)
+        
+        aboutMenuItem = wx.MenuItem(helpMenu,wx.ID_ABOUT, text = "&About",kind = wx.ITEM_NORMAL)
+        helpMenu.Append(aboutMenuItem)
+        
         #################### Input file ####################
         
         fileChoixeSizer = wx.StaticBoxSizer(wx.HORIZONTAL, panel, "Input file")
@@ -77,7 +103,7 @@ class MainWindow(wx.Frame):
         self.imagePathText = ExpandoTextCtrl(panel, value="No file selected", style= wx.TE_READONLY, size=(-1, 26))
         fileChoixeSizer.Add(self.imagePathText, proportion=1, flag=wx.ALIGN_CENTER_VERTICAL)
         
-        self.buttonOpen = wx.Button(panel, label="Select a &file...", size=(-1, 28))
+        self.buttonOpen = wx.Button(panel, label="&Open a file...", size=(-1, 28))
         self.buttonOpen.Bind(wx.EVT_BUTTON,self.onOpen)
         fileChoixeSizer.Add(self.buttonOpen)
         
@@ -151,20 +177,66 @@ class MainWindow(wx.Frame):
         
         sizer.Fit(self)
         
-            
+    def menuhandler(self, event):
+        """
+        Called when a menu item is used.
+        Contains no logic, simply redirects to the appropriate functions.
+        """
+        id = event.GetId() 
+        match id:
+            # File -> Open
+            case wx.ID_OPEN:
+                self.onOpen(event)
+            # File -> Generate
+            case wx.ID_EXECUTE:
+                self.onGenerate(event)
+            # Help -> User Manual
+            case wx.ID_HELP:
+                self.onHelp(event)
+            # Help -> About
+            case wx.ID_ABOUT:
+                self.onAbout(event)
+            # Other
+            case _:
+                pass
+    
+    def onHelp(self, event):
+        help_url = "help.html"
+        if os.path.isfile(help_url):
+            os.system(f"start {help_url}")
+        else:
+            wx.MessageBox('Help file not found', 'Error', wx.OK | wx.ICON_ERROR)
+    
+    def onAbout(self, event):
+        about_text = (
+            "Image2Touch\n"
+            "\nDeveloped in collaboration between MHK and Lab4i"
+            "\nGithub repository : https://github.com/myhumankit/Image2Touch"
+            "\nProject page on the MHK wiki : https://wikilab.myhumankit.org/index.php?title=Projets:Image2Touch"
+        )
+        wx.MessageBox(about_text, 'Image2Touch', wx.OK | wx.ICON_INFORMATION)
+    
     def disableButtons(self):
-        """Disables all buttons to prevent interaction during other work"""
+        """Disables all buttons and menu items to prevent interaction during other work"""
+        # Buttons
         self.buttonOpen.Disable()
         self.buttonGenerate.Disable()
         self.checkboxSaveSTLFile.Disable()
         self.checkboxSaveBlendFile.Disable()
+        # Menu Items
+        self.openMenuItem.Enable(False)
+        self.generateMenuItem.Enable(False)
 
     def enableButtons(self):
-        """Disables all buttons to prevent interaction during other work"""
+        """Re-enables all buttons and menu items after background work is done"""
+        # Buttons
         self.buttonOpen.Enable()
         self.buttonGenerate.Enable()        
         self.checkboxSaveSTLFile.Enable()
         self.checkboxSaveBlendFile.Enable()
+        # Menu Items
+        self.openMenuItem.Enable()
+        self.generateMenuItem.Enable()
         
     def refresh(self):
         """Refreshes the layout of the window (this needs to happen if elements change size)"""

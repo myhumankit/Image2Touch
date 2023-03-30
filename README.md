@@ -16,7 +16,7 @@ Once the files are extracted, you can run the program by executing the exe file 
 
 In order to convert an image, follow these steps :
 - Open the program, and wait for the GUI to appear.
-- Click on "Select a file..." (Alt+F), choose the file you want to convert, and click "OK".
+- Click on "Open a file..." (Alt+O), choose the file you want to convert, and click "OK".
 - Wait for the file to be processed, as indicated by the progress bar at the bottom of the screen. This may take between a few seconds and a minute.
 - Change the parameters (dimensions, height of each color...) to your liking.
 - Click on "Generate" (Alt+G).

@@ -14,6 +14,7 @@ $oneString = if ($readme -join "`n" -match '(## User manual[\s\S]*)[^#]##[^#]') 
 
 # Convert to HTML
 $regexps = @(
+    @("## User manual", '## Image2Touch user manual'),
     @("### (.*)", '<h2>$1</h2>'),
     @("## (.*)", '<h1>$1</h1>'),
     @("(-.+\n)+", "<ul>`n`$0</ul>`n"),
