@@ -73,8 +73,10 @@ def findColorsAndMakeNewImage(imagePath: str, progress: Progress):
     progress.update_progress(45)
     
     # Filters classes that appear in at least 0.3% of the image
-    relevant_labels = [l for l,c in zip(unique_labels, counts) if c > img.shape[0] * img.shape[1] * min_color_prct]
-    relevant_colors = [[math.floor(r),math.floor(g),math.floor(b)] for l, [r,g,b] in zip(unique_labels, means) if l in relevant_labels]
+    # They are sorted from most to least pixels (helps automatic height selection : the most common color is lowest)
+    counts_labels_and_colors = sorted(list(zip(counts, unique_labels, means)), reverse=True)
+    relevant_labels = [l for c,l,_ in counts_labels_and_colors if c > img.shape[0] * img.shape[1] * min_color_prct]
+    relevant_colors = [c for _,l,c in counts_labels_and_colors if l in relevant_labels]
     relevant_label_to_mean = {l:c for l,c in zip(relevant_labels, relevant_colors)}
     
     # Translates to HEX
