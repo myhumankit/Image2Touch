@@ -2,20 +2,28 @@
 
 ## User manual
 
+### About
+
+Image2Touch is a tool that makes maps and other diagrams accessible to visually impaired people.
+It does that by converting 2D images with flat colouring into STL models for 3D printing.
+
+The project is a collaboration between [MHK](https://www.mhk.fr/) and [Lab4i](https://groupe-ovalt.com/lab4i/).
+You can find a more detailed description (in french) on the [MHK wiki](https://wikilab.myhumankit.org/index.php?title=Projets:Image2Touch).
+
 ### Requirements
 
-This program has only been tested for Windows 10.
+This program has only been tested with Windows 10.
 
 ### Installation procedure (Windows)
 
 This program is a standalone executable.
-To install it, simply extract the files from the archive into an empty folder.
+To install it, simply extract the files from the provided archive into an empty folder.
 Once the files are extracted, you can run the program by executing the exe file included.
 
 ### How to convert an image to a printable SVG
 
 In order to convert an image, follow these steps :
-- Open the program, and wait for the GUI to appear.
+- Open the program, and wait for the graphical interface to appear.
 - Click on "Open a file..." (Alt+O), choose the file you want to convert, and click "OK".
 - Wait for the file to be processed, as indicated by the progress bar at the bottom of the screen. This may take between a few seconds and a minute.
 - Change the parameters (dimensions, height of each color...) to your liking.
@@ -42,14 +50,10 @@ In the following sections, this guide will assume you are using conda to manage 
 1. Create a python virtual environment with `conda env create -f env.yml`
 2. Open the new virtual environment with `conda activate image2touch`.
 
-### How to run the GUI
+### How to run the tool from python
 1. Create a python virtual environment as explained in the previous section
 2. Open the virtual environment with `conda activate image2touch`.
-3. Inside this new environment, launch `python main.py`
-
-### How to setup run and debug for VSCode
-1. Create a python virtual environment as explained previously
-2. Create a file named ".env", and inside define PYTHONPATH pointing to your environment, for example : `PYTHONPATH="C:\[...]\mhk\python.exe"`
+3. Inside this new environment, run the tool with `python main.py`
 
 ### How to build the executable (Windows)
 1. Create a python virtual environment as explained previously
