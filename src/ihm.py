@@ -260,8 +260,16 @@ class MainWindow(wx.Frame):
         wx.CallAfter(wx.LogError, message)
         
     def onOpen(self, event):
-        """Behaviour for the '...' button. An image file can be selected for processing"""
-        with wx.FileDialog(self, "Load an image file to process", wildcard="Image files (*.bmp;*.gif;*.png) |*.bmp;*.gif;*.png",
+        """Behaviour for the 'Open...' button. An image file can be selected for processing"""
+        supported_formats = [
+            "jpg",
+            "jpeg",
+            "jpe",
+            "bmp",
+            "png",
+        ]
+        supported_formats_str = ";".join([f"*.{ext}" for ext in supported_formats])
+        with wx.FileDialog(self, "Load an image file to process", wildcard=f"Image files ({supported_formats_str}) |{supported_formats_str}",
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
