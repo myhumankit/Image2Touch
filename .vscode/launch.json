@@ -9,8 +9,7 @@
             "type": "python",
             "request": "launch",
             "program": "src/main.py",
-            "console": "integratedTerminal",
-            "python.envFile": "${workspaceFolder}/.env"
+            "console": "integratedTerminal"
         }
     ]
 }
