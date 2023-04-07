@@ -31,7 +31,7 @@ class LabeledControlHelper(object):
         self.sizer = wx.BoxSizer(orientation)
         self.sizer.Add(self.label, flag=(wx.ALIGN_CENTER_VERTICAL if orientation==wx.HORIZONTAL else wx.ALIGN_CENTER_HORIZONTAL))
         self.sizer.AddSpacer(10 if orientation==wx.HORIZONTAL else 3)
-        self.sizer.Add(self.control)
+        self.sizer.Add(self.control, flag=(wx.ALIGN_CENTER_VERTICAL if orientation==wx.HORIZONTAL else wx.ALIGN_CENTER_HORIZONTAL))
 
     def make(parent: wx.Window, labelText: str, wxCtrlClass: wx.Control, orientation=wx.HORIZONTAL, noLabel:bool=False, **kwargs):
         lch = LabeledControlHelper(parent, labelText, wxCtrlClass, orientation, noLabel, **kwargs)
@@ -60,15 +60,17 @@ class MainWindow(wx.Frame):
     def initUI(self):
         """Builds and displays all the UI elements of the window"""
         panel = wx.Panel(self)
-        sizer = wx.GridBagSizer(2, 6)
+        sizer = wx.GridBagSizer(vgap=10)
         
         sizer.AddGrowableRow(1)
         sizer.AddGrowableCol(0)
 
         self.panel = panel
         self.sizer = sizer
+        self.outer_sizer = wx.BoxSizer()        
+        self.outer_sizer.Add(self.sizer, flag= wx.ALL | wx.EXPAND, border=10)
         
-        panel.SetSizer(sizer)
+        panel.SetSizer(self.outer_sizer)
         
         #################### Menu Bar ####################
         
@@ -101,40 +103,40 @@ class MainWindow(wx.Frame):
         fileChoixeSizer = wx.StaticBoxSizer(wx.HORIZONTAL, panel, "Input file")
         # ExpandoTextCtrl is a variant of wx.StaticText that stays focusable even in readonly mode
         self.imagePathText = ExpandoTextCtrl(panel, value="No file selected", style= wx.TE_READONLY, size=(-1, 26))
-        fileChoixeSizer.Add(self.imagePathText, proportion=1, flag=wx.ALIGN_CENTER_VERTICAL)
+        fileChoixeSizer.Add(self.imagePathText, proportion=1, flag=wx.ALIGN_CENTER_VERTICAL | wx.LEFT, border=4)
         
         self.buttonOpen = wx.Button(panel, label="&Open a file...", size=(-1, 28))
         self.buttonOpen.Bind(wx.EVT_BUTTON,self.onOpen)
-        fileChoixeSizer.Add(self.buttonOpen)
+        fileChoixeSizer.Add(self.buttonOpen, flag=wx.ALL, border=4)
         
         sizer.Add(fileChoixeSizer, pos=(0, 0), flag=wx.EXPAND)
         
         #################### Colors ####################
         
-        self.colorSizer = wx.FlexGridSizer(cols=3, vgap=2, hgap=5)
+        self.colorSizer = wx.FlexGridSizer(cols=3, vgap=4, hgap=10)
         
         colorGroupSizer = wx.StaticBoxSizer(wx.VERTICAL, panel, "Colors")
-        colorGroupSizer.Add(self.colorSizer)
-        sizer.Add(colorGroupSizer, pos=(1, 0), flag=wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        colorGroupSizer.Add(self.colorSizer, flag=wx.ALL, border=4)
+        sizer.Add(colorGroupSizer, pos=(1, 0), flag=wx.EXPAND)
         
         #################### Dimensions (mm) ####################
         
         dimensionSizer = wx.StaticBoxSizer(wx.HORIZONTAL, panel, "Dimensions (mm)")
         
-        self.widthSpinner, widthSizer = LabeledControlHelper.make(self.panel, "Width", wx.SpinCtrl, orientation=wx.VERTICAL, 
-                                                                  min=10, max=self.max_width, initial=self.img_to_stl.meshParameters.meshWidthMM)
+        self.widthSpinner, widthSizer = LabeledControlHelper.make(self.panel, "Width", wx.SpinCtrl, orientation=wx.VERTICAL,
+                                                                  min=10, max=self.max_width, initial=self.img_to_stl.meshParameters.meshWidthMM, size=(50,-1))
         self.heightSpinner, heightSizer = LabeledControlHelper.make(self.panel, "Height", wx.SpinCtrl, orientation=wx.VERTICAL, 
-                                                                    min=10, max=self.max_height, initial=self.img_to_stl.meshParameters.meshHeightMM)
+                                                                    min=10, max=self.max_height, initial=self.img_to_stl.meshParameters.meshHeightMM, size=(50,-1))
         self.baseThicknessSpinner, baseThicknessSizer = LabeledControlHelper.make(self.panel, "Base Thickness", wx.SpinCtrl, orientation=wx.VERTICAL, 
-                                                                                  min=1, max=self.max_depth, initial=self.img_to_stl.meshParameters.meshBaseThicknessMM)
+                                                                                  min=1, max=self.max_depth, initial=self.img_to_stl.meshParameters.meshBaseThicknessMM, size=(50,-1))
         self.widthSpinner.Bind(wx.EVT_SPINCTRL,self.onWidthChanged)
         self.heightSpinner.Bind(wx.EVT_SPINCTRL,self.onHeightChanged)
         self.imageThicknessSpinner, imageThincknessSizer = LabeledControlHelper.make(self.panel, "Shape Thickness", wx.SpinCtrl, orientation=wx.VERTICAL, 
-                                                                                     min=1, max=self.max_depth, initial=self.img_to_stl.meshParameters.meshImageThicknessMM)
-        dimensionSizer.Add(widthSizer)
-        dimensionSizer.Add(heightSizer)
-        dimensionSizer.Add(baseThicknessSizer)
-        dimensionSizer.Add(imageThincknessSizer)
+                                                                                     min=1, max=self.max_depth, initial=self.img_to_stl.meshParameters.meshImageThicknessMM, size=(50,-1))
+        dimensionSizer.Add(widthSizer, flag=wx.ALL, border=4)
+        dimensionSizer.Add(heightSizer, flag=wx.ALL, border=4)
+        dimensionSizer.Add(baseThicknessSizer, flag=wx.ALL, border=4)
+        dimensionSizer.Add(imageThincknessSizer, flag=wx.ALL, border=4)
         
         sizer.Add(dimensionSizer, pos=(2, 0), flag=wx.EXPAND)
 
@@ -143,39 +145,45 @@ class MainWindow(wx.Frame):
         exportSizer = wx.StaticBoxSizer(wx.HORIZONTAL, panel, "Export options")
         self.checkboxSaveSTLFile = wx.CheckBox(panel, label='Save STL file')
         self.checkboxSaveSTLFile.SetValue(True)
-        exportSizer.Add(self.checkboxSaveSTLFile)
+        exportSizer.Add(self.checkboxSaveSTLFile, flag=wx.ALL, border=4)
         
         self.checkboxSaveBlendFile = wx.CheckBox(panel, label='Save Blend file')  
-        exportSizer.Add(self.checkboxSaveBlendFile)
+        exportSizer.Add(self.checkboxSaveBlendFile, flag=wx.ALL, border=4)
+        
         sizer.Add(exportSizer, pos=(3, 0), flag=wx.EXPAND)
 
         #################### Generation ####################
         
         self.buttonGenerate = wx.Button(panel, label="&Generate", size=(90, 28))
         self.buttonGenerate.Bind(wx.EVT_BUTTON,self.onGenerate)
-        sizer.Add(self.buttonGenerate, pos=(6, 0), flag=wx.EXPAND)
+        sizer.Add(self.buttonGenerate, pos=(4, 0), flag=wx.EXPAND | wx.TOP, border=5)
         # This button is disabled at first and enabled when an image loads
         self.buttonGenerate.Disable()
         
+        
+        loadingSizer = wx.BoxSizer(wx.VERTICAL)
+        
         self.gaugeText = wx.StaticText(panel, label="Idle")
-        sizer.Add(self.gaugeText, pos=(4, 0))
+        loadingSizer.Add(self.gaugeText)
         
         self.gauge = wx.Gauge(panel, range=100)
-        sizer.Add(self.gauge, pos=(5,0), flag=wx.EXPAND)
+        loadingSizer.Add(self.gauge, flag=wx.EXPAND)
+        
+        sizer.Add(loadingSizer, pos=(5, 0), flag=wx.EXPAND)
         
         # Respond to the update event
         pub.subscribe(self.updateProgress, "update")
         
         #################### Preview ####################
         
-        self.PhotoMaxSize = 100
+        self.PhotoMaxSize = 200
         self.imageCtrl = wx.StaticBitmap(self.panel, wx.ID_ANY, 
                                          wx.Bitmap(wx.Image(self.PhotoMaxSize,self.PhotoMaxSize)))
         sizer.Add(self.imageCtrl, pos=(0, 2), span=(5,1), flag=wx.EXPAND)
         
         #############################################
         
-        sizer.Fit(self)
+        self.outer_sizer.Fit(self)
         
     def menuhandler(self, event):
         """
@@ -241,7 +249,7 @@ class MainWindow(wx.Frame):
     def refresh(self):
         """Refreshes the layout of the window (this needs to happen if elements change size)"""
         self.panel.Refresh()
-        self.sizer.Fit(self)
+        self.outer_sizer.Fit(self)
         
     @staticmethod
     def callUpdateProgress(value, message=""):

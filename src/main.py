@@ -17,7 +17,7 @@ def main_gui(args):
         from ihm import MainWindow
         
         app = wx.App()
-        ex = MainWindow(None, title='STL Generator')
+        ex = MainWindow(None, title='Image2Touch')
         ex.Show()
         app.MainLoop()
 
