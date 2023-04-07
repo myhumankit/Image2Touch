@@ -1,6 +1,7 @@
 import contextlib
 import os
 import re
+import sys
 
 @contextlib.contextmanager
 def set_env(**environ):
@@ -34,7 +35,24 @@ def set_blender_env():
     Has to be done before importing bpy
     Useful for the exe version, making it truly portable
     """
-    blender_dir_list = [d for d in os.listdir('.') if re.match(r'^[0-9]+\.[0-9]+$', d) and os.path.isdir(d+"/scripts")]
+    # Paths in which to look for Blender scripts
+    possible_blender_locations = ['.']
+    
+    # We add the path to the script (python mode) or exe file (compiled mode) if it is different to the current path
+    application_path = '.'
+    if getattr(sys, 'frozen', False):
+        application_path = os.path.dirname(sys.executable)
+    elif __file__:
+        application_path = os.path.dirname(__file__)
+    if(application_path != os.path.abspath('.')): 
+        possible_blender_locations.append(application_path)
+        
+    # Looking fot blender scripts
+    blender_dir_list = [f'{parent_dir}/{d}' 
+                        for parent_dir in possible_blender_locations 
+                        for d in os.listdir(parent_dir) 
+                        if re.match(r'^[0-9]+\.[0-9]+$', d) and os.path.isdir(f'{parent_dir}/{d}/scripts')]
+    
     if(len(blender_dir_list) > 0):
         # Blender files detected, will be added to the environment
         blender_dir = blender_dir_list[-1]
