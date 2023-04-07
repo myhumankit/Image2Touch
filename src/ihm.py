@@ -39,7 +39,7 @@ class LabeledControlHelper(object):
 
 class MainWindow(wx.Frame):
     """The main window of the application"""
-    def __init__(self, parent, title):
+    def __init__(self, parent, title, args):
         """Constructor for the window"""
         super(MainWindow, self).__init__(parent, title=title)
         
@@ -55,7 +55,9 @@ class MainWindow(wx.Frame):
 
         self.initUI()
         self.Centre()
-
+        
+        if args.file is not None:
+            self.onOpenFile(args.file)
 
     def initUI(self):
         """Builds and displays all the UI elements of the window"""
@@ -285,16 +287,18 @@ class MainWindow(wx.Frame):
                 return     # the user changed their mind
 
             # Proceed loading the file chosen by the user
-            pathname = fileDialog.GetPath()
-            try:
-                # We try to open the file to check if it is accessible
-                with open(pathname, 'r') as file:
-                    # self.imagePath = pathname
-                    # The intensive stuff is done in a thread
-                    threading.Thread(target=self.onImageLoad, args=[pathname]).start()
-            except IOError:
-                wx.LogError(f"Cannot open file '{pathname}'.")
-        
+            path = fileDialog.GetPath()
+            self.onOpenFile(path)
+    
+    def onOpenFile(self, path):
+        """Open a file given a path"""
+        try:
+            # We try to open the file to check if it is accessible
+            with open(path, 'r') as file:
+                # The intensive stuff is done in a thread
+                threading.Thread(target=self.onImageLoad, args=[path]).start()
+        except IOError:
+            wx.LogError(f"Cannot open file '{path}'.")
     
     def setImage(self, imageCtrl, imagePath):
         """Changes the displayed image in the preview"""
