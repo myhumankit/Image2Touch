@@ -218,6 +218,7 @@ class MainWindow(wx.Frame):
     def onAbout(self, event):
         about_text = (
             "Image2Touch\n"
+            "\nVersion 1.0"
             "\nDeveloped in collaboration between MHK and Lab4i"
             "\nGithub repository : https://github.com/myhumankit/Image2Touch"
             "\nProject page on the MHK wiki : https://wikilab.myhumankit.org/index.php?title=Projets:Image2Touch"
