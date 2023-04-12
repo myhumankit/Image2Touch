@@ -16,11 +16,11 @@ This program has only been tested with Windows 10.
 
 ### Installation procedure (Windows)
 
-This program is a standalone executable.
+The binary files for this program can be found on the [Releases page.](https://github.com/myhumankit/Image2Touch/releases).
 To install it, simply extract the files from the provided archive into an empty folder.
 Once the files are extracted, you can run the program by executing the exe file included.
 
-### How to convert an image to a printable SVG
+### How to convert an image to a printable STL file
 
 In order to convert an image, follow these steps :
 - Open the program, and wait for the graphical interface to appear.
@@ -29,13 +29,13 @@ In order to convert an image, follow these steps :
 - Change the parameters (dimensions, height of each color...) to your liking.
 - Click on "Generate" (Alt+G).
 - Wait for the file to be generated, as indicated by the progress bar at the bottom of the screen. This might take a few minutes.
-- Recover your SVG file, placed next to the original image file.
+- Recover your STL file, placed next to the original image file.
 
 ### Command line options
 
 If you wish to use the program without the user interface, you can use the following command line options :
 - `--no-gui` / `--silent` / `-s` : disables the user interface
-- `--file path/to/file` / `-f path/to/file` : file to convert to SVG (replace "path/to/file" with the desired path)
+- `--file path/to/file` / `-f path/to/file` : file to convert to STL (replace "path/to/file" with the desired path)
 
 ## Contributor manual
 
