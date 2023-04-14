@@ -19,6 +19,8 @@ def findColorsAndMakeNewImage(imagePath: str, progress: Progress):
     
     ## Parameters that could become arguments
     
+    # Groups together color values when the difference is less than this radius
+    grouping_radius = 16
     # Distance used for Ward clustering
     distance_min_squared = 100
     # Minimum amount of pixels needed for a color to be considered, as a percentage of the total amount of pixels
@@ -34,6 +36,11 @@ def findColorsAndMakeNewImage(imagePath: str, progress: Progress):
     
     # Reads the image and converts to RGB
     img = cv2.cvtColor(cv2.imread(imagePath), cv2.COLOR_BGR2RGB)
+    
+    # Reduction of the amount of colors by grouping very similar colors
+    # For example, any value between 0 and 15 becomes 8, any valeu between 16 and 31 becomes 24, etc.
+    img = img // grouping_radius * grouping_radius + grouping_radius // 2
+    
     # Flattened list of the pixel values
     pixel_list = np.reshape(img, [img.shape[0]*img.shape[1], 3])
     
