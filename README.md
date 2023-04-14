@@ -20,15 +20,27 @@ The binary files for this program can be found on the [Releases page.](https://g
 To install it, simply extract the files from the provided archive into an empty folder.
 Once the files are extracted, you can run the program by executing the exe file included.
 
+### Limits to which images can be converted
+
+This tool can load any jpg, bmp or png image.
+However, some images might not produce satisfactory resutls when used with the tool.
+To ensure the best possible result, consider using an image which meets these criteria :
+- The image should not be too small to avoid pixelation
+- The image should only use flat colouring (no gradients, photographs, etc.)
+- The image should not contain thin lines. If you image does contain lines, consider erasing (or thickening) them manually before using the tool.
+- The image should not contain too many (as in hundreds of) different colors. This includes colors that may seem identical from afar.
+
 ### How to convert an image to a printable STL file
 
 In order to convert an image, follow these steps :
 - Open the program, and wait for the graphical interface to appear.
 - Click on "Open a file..." (Alt+O), choose the file you want to convert, and click "OK".
 - Wait for the file to be processed, as indicated by the progress bar at the bottom of the screen. This may take between a few seconds and a minute.
-- Change the parameters (dimensions, height of each color...) to your liking.
+- If needed, change the height of each color to your liking. Note that the height of each color is an arbitrary value, and will be scaled according to the chosen depth of the object. By default, the colors are sorted from most to least frequent, with the most frequent color having the lowest heignt. This helps minimize the amount of material required.
+- Change the dimensions of the generated mesh to your liking.
+- Select one or multiple output formats (STL and/or BLEND files).
 - Click on "Generate" (Alt+G).
-- Wait for the file to be generated, as indicated by the progress bar at the bottom of the screen. This might take a few minutes.
+- Wait for the file to be generated, as indicated by the progress bar at the bottom of the screen. This might take up to a few minutes.
 - Recover your STL file, placed next to the original image file.
 
 ### Command line options
